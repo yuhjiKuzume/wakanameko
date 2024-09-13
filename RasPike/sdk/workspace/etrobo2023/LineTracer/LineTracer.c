@@ -70,14 +70,12 @@ void tracer_task(intptr_t unused)
     }
 
     // LAP付近にきたら、右側トレースに切り替える
-    // 条件文
     // コーナーを曲がった後（=170度に到達）、100秒後にエッジを切り替える
     if ((time - timeAtLapPoint) > 100 && !is_passing_through && reachMinus170)
     {
 
         printf("---------------------------------\n");
         printf("Lap手前に到達\n");
-        // start_video("/home/goriki/work_cs/RasPike/RaspberryPi/LAP");
 
         dynamic_base_speed = 45;
 
@@ -103,8 +101,9 @@ void tracer_task(intptr_t unused)
         initialize_pid_value();
     }
 
-    //-----------------------プラレール撮影用--------------------------------------------//
-
+    /*
+     プラレール・風景攻略
+    */
     // プラレール撮影開始角度
     /*
     ※-10~0は設定しないでください(不具合が出ます)
@@ -126,7 +125,6 @@ void tracer_task(intptr_t unused)
 
     // プラレール撮影開始
     static bool_t doneTaskPlarail = false;
-
     static bool_t arrivePlarailShootPosition = false; // 撮影位置に到着したかどうか
 
     static bool_t plarail_1_Number_of_shots = false;
@@ -161,8 +159,6 @@ void tracer_task(intptr_t unused)
         // 90°曲げる、遠心力を考慮して14°手前で止める
         doneTaskPlarail = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
     }
-
-    //-------------------------------------------------------------------//
 
     /*
         ダブルループに進入(サークル交点付近)
@@ -256,7 +252,9 @@ void tracer_task(intptr_t unused)
         }
     }
 
-    // ミニフィグテスト
+    /*
+     ミニフィグ撮影
+    */
     //----------------------1回目：-50°---------------------------------------------//
     static bool_t doFirstTask = true;
     static bool_t doneFirstTask = false;
@@ -333,8 +331,8 @@ start_video(char *filename)
     fclose(file);
 }
 
-//------------------------プラレール撮影タスク用メソッド------------------------//
-// プラレール撮影メソッド用のフラグ
+//------------------------プラレール・風景攻略用メソッド------------------------//
+// メソッド全体のフラグ
 static bool_t doTowardsCenterOfPerfectCircle = true;
 static bool_t doBackToStartPointAtPerfectCircle = true;
 static bool_t positionValueIsNull_towardsCenterOfPerfectCircle = true;
@@ -348,7 +346,7 @@ static bool_t plarail_passShotTask = false;
 static bool_t overcome_boundaries_towardsCenterOfPerfectCircle = false;
 static bool_t overcome_boundaries_backToStartPointAtPerfectCircle = false;
 
-// 走行体を正円の中央に向ける
+// /* 正円にて、走行体を正円の中央に向ける */
 int16_t towardsCenterOfPerfectCircle(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t moveAngle, int16_t inertiaAmount)
 {
     printf("【正円での撮影タスク：行き】開始\n");
@@ -428,6 +426,7 @@ int16_t towardsCenterOfPerfectCircle(bool_t *pointer_motor_impals, bool_t *is_mo
     }
 }
 
+/* 正円にて、撮影位置からライン上に復帰する */
 bool_t backToStartPointAtPerfectCircle(int16_t startAngle, bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t inertiaAmount)
 {
     printf("【正円での撮影タスク：帰り】開始\n");
@@ -517,7 +516,7 @@ bool_t backToStartPointAtPerfectCircle(int16_t startAngle, bool_t *pointer_motor
 //     return isPerfectShot;
 // }
 
-// プラレール撮影
+/* プラレール・風景攻略の実行メソッド */
 bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int moveAngle, int inertiaAmount)
 {
     // 動作を停止させる
@@ -561,9 +560,9 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
 
 //-------------------------------------------------------------------//
 
-//------------------------ミニフィグ撮影タスク用メソッド------------------------//
-//------------------------ミニフィグ撮影メソッド用のフラグ------------------------//
+//------------------------ミニフィグ攻略用メソッド------------------------//
 
+// メソッド全体のフラグ
 static bool_t doTowardsCenterOfEllipse = true;
 static bool_t doBackToStartPointAtEllipse = true;
 
@@ -574,12 +573,11 @@ static bool_t positionValueIsNull_backToStartPointAtEllipse = true;
 static bool_t isNeedAngleBuffer_backToStartPointAtEllipse = false;
 static bool_t doneTask_backToStartPointAtEllipse = false;
 static bool_t minifig_passShotTask = false;
-
 // 境界を乗り越える場合か
 static bool_t overcome_boundaries_towardsCenterOfEllipse = false;
 static bool_t overcome_boundaries_backToStartPointAtEllipse = false;
-//-------------------------------------------------------------------//
-// 走行体を楕円の中央に向ける
+
+/* 楕円にて、走行体を楕円の中央に向ける */
 int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t moveAngle, int16_t inertiaAmount)
 {
     printf("【楕円での撮影タスク：行き】開始\n");
@@ -658,6 +656,7 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
     }
 }
 
+/* 楕円にて、撮影位置からライン上に復帰する */
 bool_t backToStartPointAtEllipse(int16_t startAngle, bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t inertiaAmount)
 {
     printf("【楕円での撮影タスク：帰り】開始\n\n");
@@ -747,7 +746,7 @@ bool_t backToStartPointAtEllipse(int16_t startAngle, bool_t *pointer_motor_impal
 //     return isPerfectShot;
 // }
 
-// ミニフィグ撮影
+/* ミニフィグ攻略の実行メソッド */
 bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int moveAngle, int inertiaAmount)
 {
 
@@ -803,7 +802,7 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
 
 //-------------------------------------------------------------------//
 
-// 指定された秒数停止する
+/* 指定された秒数停止する */
 bool_t waitMSecond(bool_t *is_motor_stop, int *watingTime, int mSecond)
 {
     (*watingTime)++;
@@ -816,12 +815,52 @@ bool_t waitMSecond(bool_t *is_motor_stop, int *watingTime, int mSecond)
     else
     {
         printf("待機中・・・\n");
-        printf("*is_motor_stop%d\n", *is_motor_stop);
         *is_motor_stop = true;
         ev3_motor_set_power(left_motor, 0);
         ev3_motor_set_power(right_motor, 0);
-        printf("インクリメント%d\n", *watingTime);
         return false;
     }
 }
 
+/* フォルダ内に画像があるか検索する */
+bool_t searchPicture(const char *directory, const char *filename)
+{
+    bool_t exist = false;
+
+    DIR *dir = opendir(directory);
+    if (dir == NULL)
+    {
+        return exist;
+    }
+
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, filename) == 0)
+        {
+            exist = true;
+            break;
+        }
+    }
+
+    closedir(dir);
+
+    if (exist)
+    {
+        printf("ファイル '%s' はディレクトリ '%s' に存在します。\n", filename, directory);
+    }
+    else
+    {
+        printf("ファイル '%s' はディレクトリ '%s' に存在しません。\n", filename, directory);
+    }
+
+    return exist;
+}
+
+// 以下を、葛目君と相談して決定
+//     const char *directory = "dirPath"; // 調べたいディレクトリのパス
+//     char filename[256];
+//     const char *filename = "fileName"; // 調べたいファイル名
+
+//     searchPicture(directory, filename);
