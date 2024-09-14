@@ -1,13 +1,15 @@
 from picamera2.picamera2 import *
+import cv2
 import time
 import os
  
+# 撮影した画像ファイルを保存するディレクトリ
+save_dir = "minifig_photo"
+
 # 画像を撮影
-def picam_save(count):
+def capture_minifig(count):
   picam2 = Picamera2()
  
-  # 撮影した画像ファイルを保存するディレクトリ
-  save_dir = "minifig_dir"
   if not os.path.exists(save_dir):
     os.makedirs(save_dir)
  
@@ -29,8 +31,13 @@ def picam_save(count):
 
 if __name__ == "__main__":
   arg = int(sys.argv[1])
-  filePath = picam_save(arg)
+  filePath = capture_minifig(arg)
+
+  target_file_path = f"./{save_dir}/resize_minifig_{arg}.jpg"
+  img = cv2.imread(filePath)
+  resize_file = cv2.resize(img, (800, 600))
+  cv2.imwrite(target_file_path, resize_file)
 
   # PCの共有フォルダに画像を送信
   mount_dir = "/mnt/share"
-  os.system(f"sudo cp {filePath} {mount_dir}")
+  os.system(f"sudo cp {target_file_path} {mount_dir}")
