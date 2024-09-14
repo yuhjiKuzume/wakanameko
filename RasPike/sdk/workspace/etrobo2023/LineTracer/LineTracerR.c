@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <string.h>
 
 // static int time; // 　制御時間
 // static int trace_edge = RIGHT_EDGE;
@@ -822,41 +824,41 @@ void tracer_task_R(intptr_t unused) {}
 //     }
 // }
 
-/* フォルダ内に画像があるか検索する */
-bool_t searchPicture(const char *directory, const char *filename)
-{
-    bool_t exist = false;
+// /* フォルダ内に画像があるか検索する */
+// bool_t searchPicture(const char *directory, const char *filename)
+// {
+//     bool_t exist = false;
 
-    DIR *dir = opendir(directory);
-    if (dir == NULL)
-    {
-        return exist;
-    }
+//     DIR *dir = opendir(directory);
+//     if (dir == NULL)
+//     {
+//         return exist;
+//     }
 
-    struct dirent *entry;
+//     struct dirent *entry;
 
-    while ((entry = readdir(dir)) != NULL)
-    {
-        if (strcmp(entry->d_name, filename) == 0)
-        {
-            exist = true;
-            break;
-        }
-    }
+//     while ((entry = readdir(dir)) != NULL)
+//     {
+//         if (strcmp(entry->d_name, filename) == 0)
+//         {
+//             exist = true;
+//             break;
+//         }
+//     }
 
-    closedir(dir);
+//     closedir(dir);
 
-    if (exist)
-    {
-        printf("ファイル '%s' はディレクトリ '%s' に存在します。\n", filename, directory);
-    }
-    else
-    {
-        printf("ファイル '%s' はディレクトリ '%s' に存在しません。\n", filename, directory);
-    }
+//     if (exist)
+//     {
+//         printf("ファイル '%s' はディレクトリ '%s' に存在します。\n", filename, directory);
+//     }
+//     else
+//     {
+//         printf("ファイル '%s' はディレクトリ '%s' に存在しません。\n", filename, directory);
+//     }
 
-    return exist;
-}
+//     return exist;
+// }
 
 // 以下を、葛目君と相談して決定
 //     const char *directory = "dirPath"; // 調べたいディレクトリのパス
