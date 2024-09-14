@@ -27,7 +27,6 @@ void tracer_task(intptr_t unused)
 
     // ポイント通過フラグ
     static bool_t is_passing_through = false; // LAP通過をしたか
-    // static bool_t is_passing_through = true; // テスト用
 
     // 角度が-170度超えたかフラグ
     static bool_t reachMinus170 = false;
@@ -57,9 +56,6 @@ void tracer_task(intptr_t unused)
     // ジャイロセンサーから角度を取得
     angle = ev3_gyro_sensor_get_angle(gyro_sensor);
     printf("angle:%d\n", angle);
-
-    // 画像撮影and画像判定
-    // int result = system("python etrobo2023/captureAndJudgeYolo.py");
 
     // // 一回も-170度を超えてない状態で、-170度に到達した場合
     if ((abs(angle) > 170) && !reachMinus170)
@@ -108,7 +104,7 @@ void tracer_task(intptr_t unused)
     /*
     ※-10~0は設定しないでください(不具合が出ます)
     */
-    static int16_t plarail_shooting_start_angle = 20; // ここを変更
+    static int16_t plarail_shooting_start_angle = 60; // ここを変更
     // static int16_t plarail_shooting_start_angle = -90;
 
     /*
@@ -123,7 +119,9 @@ void tracer_task(intptr_t unused)
         plarail_one_more_lap = true;
     }
 
-    // プラレール撮影開始
+    /*
+     プラレール・風景撮影
+    */
     static bool_t doneTaskPlarail = false;
     static bool_t arrivePlarailShootPosition = false; // 撮影位置に到着したかどうか
 
@@ -289,7 +287,7 @@ void tracer_task(intptr_t unused)
         if (arrive && !doneFirstTask)
         {
             printf("【楕円でのミニフィグ撮影】１回目");
-            doneFirstTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            doneFirstTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 70, 12); // ここを変更
             if (doneFirstTask)
             {
                 doSecondTask = true;
@@ -341,7 +339,7 @@ void tracer_task(intptr_t unused)
         if (arrive && !doneThirdTask)
         {
             printf("【楕円でのミニフィグ撮影】３回目");
-            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 140, 12); // ここを変更
             if (doneThirdTask)
             {
                 doFourthTask = true;
@@ -367,7 +365,7 @@ void tracer_task(intptr_t unused)
         if (arrive && !doneFourthTask)
         {
             printf("【楕円でのミニフィグ撮影】４回目");
-            doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 60, 12); // ここを変更
             if (doneFourthTask)
             {
                 doFifthTask = true;
@@ -415,8 +413,8 @@ void tracer_task(intptr_t unused)
     {
         printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
         motor_impals = true;
-        ev3_motor_set_power(left_motor, 50);
-        ev3_motor_set_power(right_motor, 50);
+        ev3_motor_set_power(left_motor, 40);
+        ev3_motor_set_power(right_motor, 55);
         if ((time - latest_passed_blue_line_time) > 40)
         { // 90
             // trace_edge =
@@ -778,7 +776,7 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
 /* 楕円にて、撮影位置からライン上に復帰する */
 bool_t backToStartPointAtEllipse(int16_t startAngle, bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t inertiaAmount)
 {
-    printf("【楕円での撮影タスク：帰り】開始\n\n");
+    printf("【楕円での撮影タスク：帰り】開始\n");
     // このタスク終了までライントレースを切る
     *pointer_motor_impals = true;
 
@@ -886,15 +884,24 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
 
     // 写真を撮って、パーフェクトショットか判定
     static bool_t snapped = false;
+    static int timeCount = 0;
     if (!minifig_passShotTask && !doTowardsCenterOfEllipse)
     {
-        static int timeCount = 0;
         minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 2);
         // 写真撮影のpythonプログラムは1回しか呼ばない（連続して呼ぶと意図しない挙動になる）
+        static int minifigSnapNumber = 1;
         if (!snapped)
         {
-            // start_video("/home/goriki/work_cs/RasPike/RaspberryPi/START1");　葛目君に、python起動とファイルの保存先を書いてもらう
+            printf("撮影実行");
+            char command[100];
+            sprintf(command, "python ./etrobo2023/captureMinifig.py %d", minifigSnapNumber);
+            int result = system(command);
+            if (result == -1)
+            {
+                printf("python失敗");
+            }
             snapped = true;
+            minifigSnapNumber++;
         }
     }
 
@@ -920,6 +927,7 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
         minifig_passShotTask = false;
         overcome_boundaries_towardsCenterOfEllipse = false;
         overcome_boundaries_backToStartPointAtEllipse = false;
+        timeCount = 0;
         snapped = false;
         return true;
     }
