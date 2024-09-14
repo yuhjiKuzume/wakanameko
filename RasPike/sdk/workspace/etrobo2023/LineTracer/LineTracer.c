@@ -255,21 +255,33 @@ void tracer_task(intptr_t unused)
     /*
      ミニフィグ撮影
     */
-    //----------------------1回目：-50°---------------------------------------------//
+    // 撮影回数のフェーズを管理するフラグ
     static bool_t doFirstTask = true;
     static bool_t doneFirstTask = false;
+
+    static bool_t doSecondTask = false;
+    static bool_t doneSecondTask = false;
+
+    static bool_t doThirdTask = false;
+    static bool_t doneThirdTask = false;
+
+    static bool_t doFourthTask = false;
+    static bool_t doneFourthTask = false;
+
+    static bool_t doFifthTask = false;
+    static bool_t doneFifthTask = false;
+
+    //----------------------1回目：-50°---------------------------------------------//
     if (doFirstTask && passThePerfectCercle)
     {
-        static bool_t arrive = false; // 撮影位置に到着したかどうか
-
         // 撮影位置まで移動
+        static bool_t arrive = false;
         if (!arrive && angle < -50) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
         {
             // 安定性確保のため機体ストップ
             is_motor_stop = true;
             ev3_motor_set_power(left_motor, 0);
             ev3_motor_set_power(right_motor, 0);
-
             arrive = true;
         }
 
@@ -280,8 +292,112 @@ void tracer_task(intptr_t unused)
             doneFirstTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
             if (doneFirstTask)
             {
-                // doSecondTask = true;
+                doSecondTask = true;
             }
+        }
+    }
+
+    //----------------------2回目：-90°---------------------------------------------//
+    if (doSecondTask && passThePerfectCercle)
+    {
+        // 撮影位置まで移動
+        static bool_t arrive = false;
+        if (!arrive && angle < -80) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
+        {
+            // 安定性確保のため機体ストップ
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
+            arrive = true;
+        }
+
+        // 撮影位置に到着すると撮影タスク開始
+        if (arrive && !doneSecondTask)
+        {
+            printf("【楕円でのミニフィグ撮影】２回目");
+            doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            if (doneSecondTask)
+            {
+                doThirdTask = true;
+            }
+        }
+    }
+
+    //----------------------3回目：-130°---------------------------------------------//
+    if (doThirdTask && passThePerfectCercle)
+    {
+        // 撮影位置まで移動
+        static bool_t arrive = false;
+        if (!arrive && angle < -130) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
+        {
+            // 安定性確保のため機体ストップ
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
+            arrive = true;
+        }
+
+        // 撮影位置に到着すると撮影タスク開始
+        if (arrive && !doneThirdTask)
+        {
+            printf("【楕円でのミニフィグ撮影】３回目");
+            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            if (doneThirdTask)
+            {
+                doFourthTask = true;
+            }
+        }
+    }
+
+    //----------------------4回目：130°---------------------------------------------//
+    if (doFourthTask && passThePerfectCercle)
+    {
+        // 撮影位置まで移動
+        static bool_t arrive = false;
+        if (!arrive && angle < 130 && angle > 0) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
+        {
+            // 安定性確保のため機体ストップ
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
+            arrive = true;
+        }
+
+        // 撮影位置に到着すると撮影タスク開始
+        if (arrive && !doneFourthTask)
+        {
+            printf("【楕円でのミニフィグ撮影】４回目");
+            doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            if (doneFourthTask)
+            {
+                doFifthTask = true;
+            }
+        }
+    }
+
+    //----------------------5回目：90°---------------------------------------------//
+    if (doFifthTask && passThePerfectCercle)
+    {
+        // 撮影位置まで移動
+        static bool_t arrive = false;
+        if (!arrive && angle < 90 && angle > 0) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
+        {
+            // 安定性確保のため機体ストップ
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
+            arrive = true;
+        }
+
+        // 撮影位置に到着すると撮影タスク開始
+        if (arrive && !doneFifthTask)
+        {
+            printf("【楕円でのミニフィグ撮影】５回目");
+            doneFifthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            // if (doneFifthTask)
+            // {
+            //     doSixthTask = true;
+            // }
         }
     }
 
@@ -532,18 +648,21 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
     {
         startAngle = towardsCenterOfPerfectCircle(pointer_motor_impals, is_motor_stop, moveAngle, inertiaAmount);
     }
-    // // 写真を撮って、パーフェクトショットか判定
 
+    // 写真を撮って、パーフェクトショットか判定
     if (!plarail_passShotTask && !doTowardsCenterOfPerfectCircle)
     {
-        printf("boolean始め%d", plarail_passShotTask);
         static int timeCount = 0;
         plarail_passShotTask = waitMSecond(is_motor_stop, &timeCount, 3);
-        // passShotTask = analyzeImage(image);
-        printf("boolean戻り%d", plarail_passShotTask);
-    }
 
-    // 画像送信
+        // 動画撮影のpythonプログラムは1回しか呼ばない（連続して呼ぶと意図しない挙動になる）
+        static bool_t startedVideo = false;
+        if (!startedVideo)
+        {
+            // start_video("/home/goriki/work_cs/RasPike/RaspberryPi/START1");　葛目君に、python起動とファイルの保存先を書いてもらう
+            startedVideo = true;
+        }
+    }
 
     // 元の位置に戻す
     if (doBackToStartPointAtPerfectCircle && !doTowardsCenterOfPerfectCircle && plarail_passShotTask)
@@ -764,13 +883,19 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
     {
         startAngle = towardsCenterOfEllipse(pointer_motor_impals, is_motor_stop, moveAngle, inertiaAmount);
     }
-    // // 写真を撮って、パーフェクトショットか判定
 
+    // 写真を撮って、パーフェクトショットか判定
+    static bool_t snapped = false;
     if (!minifig_passShotTask && !doTowardsCenterOfEllipse)
     {
         static int timeCount = 0;
-        minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 3);
-        // passShotTask = analyzeImage(image);
+        minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 2);
+        // 写真撮影のpythonプログラムは1回しか呼ばない（連続して呼ぶと意図しない挙動になる）
+        if (!snapped)
+        {
+            // start_video("/home/goriki/work_cs/RasPike/RaspberryPi/START1");　葛目君に、python起動とファイルの保存先を書いてもらう
+            snapped = true;
+        }
     }
 
     // 画像送信
@@ -795,7 +920,7 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
         minifig_passShotTask = false;
         overcome_boundaries_towardsCenterOfEllipse = false;
         overcome_boundaries_backToStartPointAtEllipse = false;
-
+        snapped = false;
         return true;
     }
 }
