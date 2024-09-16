@@ -2,13 +2,13 @@ from picamera2.picamera2 import *
 import time
 import subprocess
  
-h264_file = "./video2.h264"
-mp4_file = "./video2.mp4"
+h264_file = "./video.h264"
+mp4_file = "./video.mp4"
 
 width = 1980
 length = 1080
 # 動画を撮影
-def capture_train():
+def capture():
   picam2 = Picamera2()
 
   fullReso = picam2.camera_properties['PixelArraySize']  # センサー解像度
@@ -22,7 +22,7 @@ def capture_train():
   picam2.configure(camera_config)
   # カメラを起動
   picam2.start_recording(encoder, h264_file)
-  time.sleep(10) # 10秒間録画
+  time.sleep(20) # 10秒間録画
   picam2.stop_recording()
  
   # H264をMP4に変換するコマンド
@@ -30,6 +30,3 @@ def capture_train():
 
   # ffmpegコマンドを実行してMP4に変換
   subprocess.run(convert_command, shell=True)
-
-if __name__ == "__main__":
-  capture_train()

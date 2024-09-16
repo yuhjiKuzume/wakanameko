@@ -45,7 +45,11 @@ if __name__ == "__main__":
     """
     bestshot_image = extract_bestshot_image(video_path,output_root_folder,frame_interval,calculate_interval,debug_mode)
     bestshot_image = cv2.resize(bestshot_image,(800,600))       # サイズを800×600で出力
-    cv2.imwrite(os.path.join(bestshot_folder_Path, bestshot_filename),bestshot_image)
+    resize_image = os.path.join(bestshot_folder_Path, bestshot_filename)
+    cv2.imwrite(resize_imgage,bestshot_image)
+    # PCの共有フォルダに画像を送信
+    mount_dir = "/mnt/share"
+    os.system(f"sudo cp {resize_image} {mount_dir}")
 
     """
     -------開発用--------

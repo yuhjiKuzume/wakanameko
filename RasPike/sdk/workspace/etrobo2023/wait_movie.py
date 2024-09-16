@@ -1,15 +1,16 @@
 import time
-import capture_minifig.py
+import os
+import capture_train
 
 # 監視するフォルダのパス
 folder_to_watch = "./flagFolder"
 start_time = 0
 
 # フォルダを監視する関数
-def watch_folder(folder, capture_count):
+def watch_folder(folder):
   # ミニフィグ撮影の実行を命じるフラグ
   # 指定したファイルが作成されたらミニフィグ撮影を実行
-  file_to_watch = f"capture_flag_{count}.txt"
+  file_to_watch = f"movie_flag.txt"
 
   print(f"Monitoring folder: {folder}")
 
@@ -21,8 +22,11 @@ def watch_folder(folder, capture_count):
     if file_to_watch in files_in_folder:
       print(f"{file_to_watch} found! Executing curl command...")
 
-      # ミニフィグ撮影
-      capture_minifig.capture(capture_count)
+      # プラレール動画撮影
+      capture_train.capture()
+      print("撮影完了")
+      # ベストショット判定
+      os.system("python ./train/train_bestshot.py")
 
       # 撮影が終了したら処理を終了する
       break
@@ -31,9 +35,4 @@ def watch_folder(folder, capture_count):
   time.sleep(1)
 
 if __name__ == "__main__":
-  count = 0
-  while (count < 6):
-    watch_folder(folder_to_watch, count)
-    count += 1
-
-  print("６回撮影")
+  watch_folder(folder_to_watch)
