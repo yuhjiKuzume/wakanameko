@@ -872,25 +872,17 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
     }
 
     // 写真を撮って、パーフェクトショットか判定
-    static bool_t snapped = false;
+    static bool_t executedPython = false;
     static int timeCount = 0;
     if (!minifig_passShotTask && !doTowardsCenterOfEllipse)
     {
         printf("timeCount:%d\n", timeCount);
         minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 2);
-        // 写真撮影のpythonプログラムは1回しか呼ばない（連続して呼ぶと意図しない挙動になる）
-        static int minifigSnapNumber = 1;
-        if (!snapped)
+        static int minifigSnapNumber = 0;
+        if (!executedPython)
         {
-            printf("撮影実行");
-            char command[100];
-            sprintf(command, "python ./etrobo2023/captureMinifig.py %d", minifigSnapNumber);
-            int result = system(command);
-            if (result == -1)
-            {
-                printf("python失敗");
-            }
-            snapped = true;
+            printf("撮影実行\n");
+            executedPython = makeFile(minifigSnapNumber);
             minifigSnapNumber++;
         }
     }
@@ -945,41 +937,57 @@ bool_t waitMSecond(bool_t *is_motor_stop, int *watingTime, int mSecond)
     }
 }
 
-/* フォルダ内に画像があるか検索する */
-bool_t searchPicture(const char *directory, const char *filename)
+/* ファイルを作成する */
+bool_t makeFile(int fileNum)
 {
-    bool_t exist = false;
+    bool_t result = false;
+    char fileName[100];
+    sprintf(fileName, "capture_flag_%d.txt", fileNum);
 
-    DIR *dir = opendir(directory);
-    if (dir == NULL)
+    FILE *file = fopen(fileName, "w");
+    if (!(file == NULL))
     {
-        return exist;
+        printf("%sの作成に成功", fileName);
+        result = true;
     }
-
-    struct dirent *entry;
-
-    while ((entry = readdir(dir)) != NULL)
-    {
-        if (strcmp(entry->d_name, filename) == 0)
-        {
-            exist = true;
-            break;
-        }
-    }
-
-    closedir(dir);
-
-    if (exist)
-    {
-        printf("ファイル '%s' はディレクトリ '%s' に存在します。\n", filename, directory);
-    }
-    else
-    {
-        printf("ファイル '%s' はディレクトリ '%s' に存在しません。\n", filename, directory);
-    }
-
-    return exist;
+    return result;
 }
+
+// /* フォルダ内に画像があるか検索する */
+// bool_t searchPicture(const char *directory, const char *filename)
+// {
+//     bool_t exist = false;
+
+//     DIR *dir = opendir(directory);
+//     if (dir == NULL)
+//     {
+//         return exist;
+//     }
+
+//     struct dirent *entry;
+
+//     while ((entry = readdir(dir)) != NULL)
+//     {
+//         if (strcmp(entry->d_name, filename) == 0)
+//         {
+//             exist = true;
+//             break;
+//         }
+//     }
+
+//     closedir(dir);
+
+//     if (exist)
+//     {
+//         printf("ファイル '%s' はディレクトリ '%s' に存在します。\n", filename, directory);
+//     }
+//     else
+//     {
+//         printf("ファイル '%s' はディレクトリ '%s' に存在しません。\n", filename, directory);
+//     }
+
+//     return exist;
+// }
 
 // 以下を、葛目君と相談して決定
 //     const char *directory = "dirPath"; // 調べたいディレクトリのパス
