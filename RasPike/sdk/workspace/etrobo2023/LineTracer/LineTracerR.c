@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <string.h>
 
 // static int time; // 　制御時間
 // static int trace_edge = RIGHT_EDGE;
@@ -70,14 +72,12 @@ void tracer_task_R(intptr_t unused) {}
 //     }
 
 //     // LAP付近にきたら、右側トレースに切り替える
-//     // 条件文
 //     // コーナーを曲がった後（=170度に到達）、100秒後にエッジを切り替える
 //     if ((time - timeAtLapPoint) > 100 && !is_passing_through && angle170_through)
 //     {
 
 //         printf("---------------------------------\n");
 //         printf("Lap手前に到達\n");
-//         // start_video("/home/goriki/work_cs/RasPike/RaspberryPi/LAP");
 
 //         dynamic_base_speed = 45;
 
@@ -104,7 +104,7 @@ void tracer_task_R(intptr_t unused) {}
 //     }
 
 //     /*
-//      プラレール・風景
+//      プラレール・風景攻略
 //     */
 //     // プラレール撮影開始角度
 //     /*
@@ -125,9 +125,10 @@ void tracer_task_R(intptr_t unused) {}
 //         plarail_one_more_lap = true;
 //     }
 
-//     // プラレール撮影開始
+// /*
+//  プラレール・風景撮影
+// */
 //     static bool_t doneTaskPlarail = false;
-
 //     static bool_t arrivePlarailShootPosition = false; // 撮影位置に到着したかどうか
 
 //     static bool_t plarail_1_Number_of_shots = false;
@@ -162,8 +163,6 @@ void tracer_task_R(intptr_t unused) {}
 //         // 90°曲げる、遠心力を考慮して12°手前で止める
 //         doneTaskPlarail = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14);
 //     }
-
-//     //-------------------------------------------------------------------//
 
 //     /*
 //         ダブルループに進入(サークル交点付近)
@@ -303,8 +302,8 @@ void tracer_task_R(intptr_t unused) {}
 //     {
 //         printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
 //         motor_impals = true;
-//         ev3_motor_set_power(left_motor, 50);
-//         ev3_motor_set_power(right_motor, 50);
+//         ev3_motor_set_power(left_motor, 60);
+//         ev3_motor_set_power(right_motor, 40);
 //         if ((time - latest_passed_blue_line_time) > 40)
 //         { // 90
 //             // trace_edge =
@@ -314,6 +313,8 @@ void tracer_task_R(intptr_t unused) {}
 //             initialize_pid_value();
 //         }
 //     }
+
+// ここに、青の〇で止まる操作を入れる
 
 //     /* ステアリング操舵量の計算 */
 //     if (!is_motor_stop && !motor_impals && !end_of_linetrace)
@@ -805,7 +806,7 @@ void tracer_task_R(intptr_t unused) {}
 
 // //-----------------------------------------------------------------------------//
 
-// // 指定された秒数停止する
+// /* 指定された秒数停止する */
 // bool_t waitMSecond(bool_t *is_motor_stop, int *watingTime, int mSecond)
 // {
 //     (*watingTime)++;
@@ -825,8 +826,45 @@ void tracer_task_R(intptr_t unused) {}
 //     }
 // }
 
-// // フォルダ内に画像があるか検索する
-// bool_t searchPicture()
+// /* フォルダ内に画像があるか検索する */
+// bool_t searchPicture(const char *directory, const char *filename)
 // {
-//     bool_t
+//     bool_t exist = false;
+
+//     DIR *dir = opendir(directory);
+//     if (dir == NULL)
+//     {
+//         return exist;
+//     }
+
+//     struct dirent *entry;
+
+//     while ((entry = readdir(dir)) != NULL)
+//     {
+//         if (strcmp(entry->d_name, filename) == 0)
+//         {
+//             exist = true;
+//             break;
+//         }
+//     }
+
+//     closedir(dir);
+
+//     if (exist)
+//     {
+//         printf("ファイル '%s' はディレクトリ '%s' に存在します。\n", filename, directory);
+//     }
+//     else
+//     {
+//         printf("ファイル '%s' はディレクトリ '%s' に存在しません。\n", filename, directory);
+//     }
+
+//     return exist;
 // }
+
+// 以下を、葛目君と相談して決定
+//     const char *directory = "dirPath"; // 調べたいディレクトリのパス
+//     char filename[256];
+//     const char *filename = "fileName"; // 調べたいファイル名
+
+//     searchPicture(directory, filename);
