@@ -1,6 +1,7 @@
 import time
 import os
 import capture_minifig
+import test
 
 # 監視するフォルダのパス
 folder_to_watch = "./flagFolder"
@@ -35,5 +36,6 @@ def watch_folder(folder, capture_count):
 if __name__ == "__main__":
   count = 0
   while (count < 6):
-    watch_folder(folder_to_watch, count)
+    test.test()
+    # watch_folder(folder_to_watch, count)
     count += 1

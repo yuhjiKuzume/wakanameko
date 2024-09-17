@@ -18,12 +18,10 @@ def capture(count):
   file_path = os.path.join(save_dir, filename)
  
   # カメラ画角指定
-  picam2.configure(picam2.create_preview_configuration(main={"format": 'XRGB8888', "size": (2304, 1296)}))
-  picam2.start()
-  time.sleep(2)
- 
-  picam2.capture_file(file_path)
-  picam2.close()
+  picam2.configure(picam2.create_preview_configuration(main={"format": 'XRGB8888', "size": (1280, 960)}))
+  
+  # 撮影
+  picam2.start_and_capture_files(file_path, num_files=3, delay=0.5)
 
   target_file_path = f"./{save_dir}/resize_minifig_{count}.jpg"
   img = cv2.imread(file_path)
@@ -41,10 +39,10 @@ def capture(count):
 #   arg = int(sys.argv[1])
 #   filePath = capture(arg)
 
-#   target_file_path = f"./{save_dir}/resize_minifig_{arg}.jpg"
-#   img = cv2.imread(filePath)
-#   resize_file = cv2.resize(img, (800, 600))
-#   cv2.imwrite(target_file_path, resize_file)
+  # target_file_path = f"./{save_dir}/resize_minifig_{arg}.jpg"
+  # img = cv2.imread(filePath)
+  # resize_file = cv2.resize(img, (800, 600))
+  # cv2.imwrite(target_file_path, resize_file)
 
 #   # PCの共有フォルダに画像を送信
 #   mount_dir = "/mnt/share"

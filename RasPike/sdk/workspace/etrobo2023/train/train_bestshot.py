@@ -10,13 +10,15 @@ if __name__ == "__main__":
     """
     -------入出力設定--------
     """
-    video_path = "../video.mp4"
-    output_root_folder = "../train_movie"
+    video_path = "/home/waka/wakanameko/RasPike/sdk/workspace/etrobo2023/train/video.mp4"
+    output_root_folder = "../train_movie/"
     frame_interval = 20         # 動画から画像抽出時のフレーム間隔
     calculate_interval = 6      # 【重要】画像間演算時のフレーム間隔。抽出フレームでプラレールが重ならない間隔を指定
     debug_mode = False
-    bestshot_folder_Path = "../train_ditect"
+    bestshot_folder_Path = "/home/waka/wakanameko/RasPike/sdk/workspace/etrobo2023/train_ditect"
     bestshot_filename = "bestshot_train.jpg"
+
+    print(os.path.exists(video_path))
 
     """
     -------前処理--------
@@ -46,7 +48,7 @@ if __name__ == "__main__":
     bestshot_image = extract_bestshot_image(video_path,output_root_folder,frame_interval,calculate_interval,debug_mode)
     bestshot_image = cv2.resize(bestshot_image,(800,600))       # サイズを800×600で出力
     resize_image = os.path.join(bestshot_folder_Path, bestshot_filename)
-    cv2.imwrite(resize_imgage,bestshot_image)
+    cv2.imwrite(resize_image,bestshot_image)
     # PCの共有フォルダに画像を送信
     mount_dir = "/mnt/share"
     os.system(f"sudo cp {resize_image} {mount_dir}")
