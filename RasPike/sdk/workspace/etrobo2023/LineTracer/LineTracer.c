@@ -452,6 +452,7 @@ start_video(char *filename)
 // メソッド全体のフラグ
 static bool_t doTowardsCenterOfPerfectCircle = true;
 static bool_t doBackToStartPointAtPerfectCircle = true;
+
 static bool_t positionValueIsNull_towardsCenterOfPerfectCircle = true;
 static bool_t isNeedAngleBuffer_towardsCenterOfPerfectCircle = false;
 static bool_t doneTask_towardsCenterOfPerfectCircle = false;
@@ -649,12 +650,17 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
         static int timeCount = 0;
         plarail_passShotTask = waitMSecond(is_motor_stop, &timeCount, 3);
 
-        // 動画撮影のpythonプログラムは1回しか呼ばない（連続して呼ぶと意図しない挙動になる）
-        static bool_t startedVideo = false;
-        if (!startedVideo)
+        // 動画撮影のPythonの実行
+        static bool_t executedPython = false;
+        if (!executedPython)
         {
-            // start_video("/home/goriki/work_cs/RasPike/RaspberryPi/START1");　葛目君に、python起動とファイルの保存先を書いてもらう
-            startedVideo = true;
+            char fileName[] = "etrobo2023/flagFolder/movie_flag.txt";
+            FILE *file = fopen(fileName, "w");
+            if (!(file == NULL))
+            {
+                printf("%sの作成に成功", fileName);
+                executedPython = true;
+            }
         }
     }
 
@@ -876,13 +882,12 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
     static int timeCount = 0;
     if (!minifig_passShotTask && !doTowardsCenterOfEllipse)
     {
-        printf("timeCount:%d\n", timeCount);
         minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 2);
         static int minifigSnapNumber = 0;
         if (!executedPython)
         {
             printf("撮影実行\n");
-            executedPython = makeFile(minifigSnapNumber);
+            executedPython = makeMinifigFile(minifigSnapNumber);
             minifigSnapNumber++;
         }
     }
@@ -910,7 +915,7 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
         overcome_boundaries_towardsCenterOfEllipse = false;
         overcome_boundaries_backToStartPointAtEllipse = false;
         timeCount = 0;
-        snapped = false;
+        executedPython = false;
         return true;
     }
 }
@@ -938,11 +943,11 @@ bool_t waitMSecond(bool_t *is_motor_stop, int *watingTime, int mSecond)
 }
 
 /* ファイルを作成する */
-bool_t makeFile(int fileNum)
+bool_t makeMinifigFile(int fileNum)
 {
     bool_t result = false;
     char fileName[100];
-    sprintf(fileName, "capture_flag_%d.txt", fileNum);
+    sprintf(fileName, "etrobo2023/flagFolder/capture_flag_%d.txt", fileNum);
 
     FILE *file = fopen(fileName, "w");
     if (!(file == NULL))
