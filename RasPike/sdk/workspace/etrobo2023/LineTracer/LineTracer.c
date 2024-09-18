@@ -237,7 +237,6 @@ void tracer_task(intptr_t unused)
         ev3_motor_set_power(right_motor, 65);
         if ((time - latest_passed_blue_line_time) > 60)
         {
-            latest_passed_blue_line_time = 0; // エッジ切り替えを無効化する為に作成
             passThePerfectCercle = true;
 
             motor_impals = false;
@@ -372,7 +371,8 @@ void tracer_task(intptr_t unused)
     }
 
     //----------------------5回目：90°---------------------------------------------//
-    static bool_t escapeEllipse = false;
+    // static bool_t escapeEllipse = false;
+    static bool_t headToGoal = false;
     if (doFifthTask && passThePerfectCercle)
     {
         // 撮影位置まで移動
@@ -394,7 +394,35 @@ void tracer_task(intptr_t unused)
             if (doneFifthTask)
             {
                 blue_line_count = 0;
-                escapeEllipse = true;
+                // escapeEllipse = true;
+                headToGoal = true;
+            }
+        }
+    }
+
+    /*
+    楕円から正円に復帰せず、さらに楕円を半周してゴールまで帰着する
+    */
+
+    if (headToGoal)
+    {
+        // 正円・楕円の交差点部分を通過したとき
+        if (blue_line_count == 1)
+        {
+            printf("交差点部を検知");
+
+            ev3_gyro_sensor_reset(gyro_sensor);
+            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+            // 楕円がなめらかな部分になったら、PIDのパラメータとエッジを直線走行用に変更
+            if (angle < -100)
+            {
+                is_motor_stop = true;
+                ev3_motor_set_power(left_motor, 0);
+                ev3_motor_set_power(right_motor, 0);
+
+                initialize_pid_value();
+                selected_pid_parameter = 0;
+                trace_edge = RIGHT_EDGE;
             }
         }
     }
@@ -402,33 +430,33 @@ void tracer_task(intptr_t unused)
     /*
         楕円を脱出し、正円に再侵入
     */
-    static bool_t passEllipse = false;
-    if (escapeEllipse && !passEllipse && blue_line_count == 1)
-    {
-        printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
-        is_motor_stop = true;
-        motor_impals = true;
-        ev3_motor_set_power(left_motor, 50);
-        ev3_motor_set_power(right_motor, 50);
-        if ((time - latest_passed_blue_line_time) > 40)
-        { // 90
-            selected_pid_parameter = 0;
-            motor_impals = false;
-            initialize_pid_value();
-            passEllipse = true;
-            blue_line_count = 0;
-        }
-    }
+    // static bool_t passEllipse = false;
+    // if (escapeEllipse && !passEllipse && blue_line_count == 1)
+    // {
+    //     printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
+    //     is_motor_stop = true;
+    //     motor_impals = true;
+    //     ev3_motor_set_power(left_motor, 50);
+    //     ev3_motor_set_power(right_motor, 50);
+    //     if ((time - latest_passed_blue_line_time) > 40)
+    //     { // 90
+    //         selected_pid_parameter = 0;
+    //         motor_impals = false;
+    //         initialize_pid_value();
+    //         passEllipse = true;
+    //         blue_line_count = 0;
+    //     }
+    // }
 
     /*
     ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
     */
-    if (passEllipse && blue_line_count == 1)
-    {
-        is_motor_stop = true;
-        ev3_motor_set_power(left_motor, 0);
-        ev3_motor_set_power(right_motor, 0);
-    }
+    // if (passEllipse && blue_line_count == 1)
+    // {
+    //     is_motor_stop = true;
+    //     ev3_motor_set_power(left_motor, 0);
+    //     ev3_motor_set_power(right_motor, 0);
+    // }
 
     /* ステアリング操舵量の計算 */
     if (!is_motor_stop && !motor_impals && !end_of_linetrace)
