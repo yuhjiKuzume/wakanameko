@@ -372,6 +372,7 @@ void tracer_task(intptr_t unused)
     }
 
     //----------------------5回目：90°---------------------------------------------//
+    static bool_t escapeEllipse = false;
     if (doFifthTask && passThePerfectCercle)
     {
         // 撮影位置まで移動
@@ -390,10 +391,11 @@ void tracer_task(intptr_t unused)
         {
             printf("【楕円でのミニフィグ撮影】５回目");
             doneFifthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
-            // if (doneFifthTask)
-            // {
-            //     doSixthTask = true;
-            // }
+            if (doneFifthTask)
+            {
+                blue_line_count = 0;
+                escapeEllipse = true;
+            }
         }
     }
 
@@ -401,18 +403,16 @@ void tracer_task(intptr_t unused)
         楕円を脱出し、正円に再侵入
     */
     static bool_t passEllipse = false;
-    if ((time - latest_passed_blue_line_time) > 0 && latest_passed_blue_line_time != 0 && blue_line_count == 3)
+    if (escapeEllipse && !passEllipse && blue_line_count == 1)
     {
         printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
         is_motor_stop = true;
         motor_impals = true;
-        ev3_motor_set_power(left_motor, 40);
-        ev3_motor_set_power(right_motor, 55);
+        ev3_motor_set_power(left_motor, 50);
+        ev3_motor_set_power(right_motor, 50);
         if ((time - latest_passed_blue_line_time) > 40)
         { // 90
-            // trace_edge =
             selected_pid_parameter = 0;
-            latest_passed_blue_line_time = 0;
             motor_impals = false;
             initialize_pid_value();
             passEllipse = true;
@@ -423,7 +423,7 @@ void tracer_task(intptr_t unused)
     /*
     ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
     */
-    if (passEllipse && blue_line_count == 2)
+    if (passEllipse && blue_line_count == 1)
     {
         is_motor_stop = true;
         ev3_motor_set_power(left_motor, 0);
@@ -882,7 +882,7 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
     static int timeCount = 0;
     if (!minifig_passShotTask && !doTowardsCenterOfEllipse)
     {
-        minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 2);
+        minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 5);
         static int minifigSnapNumber = 0;
         if (!executedPython)
         {
