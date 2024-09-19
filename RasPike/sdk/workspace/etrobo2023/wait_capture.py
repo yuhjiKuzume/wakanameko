@@ -36,6 +36,5 @@ def watch_folder(folder, capture_count):
 if __name__ == "__main__":
   count = 0
   while (count < 6):
-    test.test()
-    # watch_folder(folder_to_watch, count)
+    watch_folder(folder_to_watch, count)
     count += 1
