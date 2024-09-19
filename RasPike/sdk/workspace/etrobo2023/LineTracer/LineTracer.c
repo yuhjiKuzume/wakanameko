@@ -588,14 +588,14 @@ bool_t backToStartPointAtPerfectCircle(int16_t startAngle, bool_t *pointer_motor
 /* プラレール・風景攻略の実行メソッド */
 bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int moveAngle, int inertiaAmount)
 {
+    static bool_t doneTask = false;
+
     // 動作を停止させる
     ev3_motor_set_power(left_motor, 0);
     ev3_motor_set_power(right_motor, 0);
 
     // 走行体を撮影方向に向ける
     static int16_t startAngle;
-
-    static bool_t doneTask = false;
 
     if (doTowardsCenterOfPerfectCircle)
     {
@@ -630,7 +630,8 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
 
     if (doneTask)
     {
-        doneTask = false;
+        pointer_motor_impals = false;
+        is_motor_stop = false;
         return true;
     }
 }
@@ -820,8 +821,7 @@ bool_t backToStartPointAtEllipse(int16_t startAngle, bool_t *pointer_motor_impal
 bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int moveAngle, int inertiaAmount)
 {
 
-    static bool_t resetFlag;
-    resetFlag = false;
+    static bool_t doneTask = false;
 
     // 動作を停止させる
     ev3_motor_set_power(left_motor, 0);
@@ -855,12 +855,15 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
     // 元の位置に戻す
     if (doBackToStartPointAtEllipse && !doTowardsCenterOfEllipse && minifig_passShotTask)
     {
-        resetFlag = backToStartPointAtEllipse(startAngle, pointer_motor_impals, is_motor_stop, inertiaAmount);
+        doneTask = backToStartPointAtEllipse(startAngle, pointer_motor_impals, is_motor_stop, inertiaAmount);
     }
 
     // このタスクのフラグをすべてリセット
-    if (resetFlag)
+    if (doneTask)
     {
+        pointer_motor_impals = false;
+        is_motor_stop = false;
+
         doTowardsCenterOfEllipse = true;
         doBackToStartPointAtEllipse = true;
         positionValueIsNull_towardsCenterOfEllipse = true;
