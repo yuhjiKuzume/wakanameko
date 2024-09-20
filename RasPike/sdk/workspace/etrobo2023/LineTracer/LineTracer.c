@@ -437,8 +437,8 @@ void tracer_task(intptr_t unused)
     {
         printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
         motor_impals = true;
-        ev3_motor_set_power(left_motor, 50);
-        ev3_motor_set_power(right_motor, 50);
+        ev3_motor_set_power(left_motor, 40);
+        ev3_motor_set_power(right_motor, 60);
         if ((time - latest_passed_blue_line_time) > 40)
         { // 90
             selected_pid_parameter = 0;
