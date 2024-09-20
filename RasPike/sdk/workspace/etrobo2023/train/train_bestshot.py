@@ -10,7 +10,7 @@ if __name__ == "__main__":
     """
     -------入出力設定--------
     """
-    video_path = "/home/waka/wakanameko/RasPike/sdk/workspace/etrobo2023/train/video.mp4"
+    video_path = "/home/waka/wakanameko/RasPike/sdk/workspace/etrobo2023/video.mp4"
     output_root_folder = "../train_movie/"
     frame_interval = 20         # 動画から画像抽出時のフレーム間隔
     calculate_interval = 6      # 【重要】画像間演算時のフレーム間隔。抽出フレームでプラレールが重ならない間隔を指定
@@ -56,11 +56,11 @@ if __name__ == "__main__":
     """
     -------開発用--------
     """
-    # 処理時間計測用
-    end_time = time.time()
-    print(f"処理時間: {end_time - start_time:.4f} 秒")
+    # # 処理時間計測用
+    # end_time = time.time()
+    # print(f"処理時間: {end_time - start_time:.4f} 秒")
 
-    # 画面に出力
-    cv2.imshow('Image', bestshot_image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # # 画面に出力
+    # cv2.imshow('Image', bestshot_image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
