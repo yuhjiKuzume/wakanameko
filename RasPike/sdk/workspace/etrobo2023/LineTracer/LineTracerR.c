@@ -105,7 +105,7 @@ void tracer_task_R(intptr_t unused)
     /*
     ※0~10は設定しないでください(不具合が出ます)
     */
-    static int16_t plarail_shooting_start_angle = -20;
+    static int16_t plarail_shooting_start_angle = 90;
     // static int16_t plarail_shooting_start_angle = 90;
 
     /*
@@ -182,11 +182,10 @@ void tracer_task_R(intptr_t unused)
             // ブルーラインカウントを1にリセット
             blue_line_count = 1;
 
-            trace_edge = RIGHT_EDGE;
             initialize_pid_value();
-            ev3_gyro_sensor_reset(gyro_sensor);
-            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+            trace_edge = RIGHT_EDGE;
             is_entering_mini_circle = true;
+            // target_color = 180;
 
             // ベーススピードを45に戻す
             dynamic_base_speed = 45;
@@ -198,11 +197,10 @@ void tracer_task_R(intptr_t unused)
             // ブルーラインカウントを1にリセット
             blue_line_count = 1;
 
-            trace_edge = RIGHT_EDGE;
             initialize_pid_value();
-            ev3_gyro_sensor_reset(gyro_sensor);
-            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+            trace_edge = RIGHT_EDGE;
             is_entering_mini_circle = true;
+            // target_color = 180;
 
             // ベーススピードを45に戻す
             dynamic_base_speed = 45;
@@ -233,7 +231,7 @@ void tracer_task_R(intptr_t unused)
         }
 
         motor_impals = true;
-        ev3_motor_set_power(left_motor, 65); // 60
+        ev3_motor_set_power(left_motor, 60); // 60
         ev3_motor_set_power(right_motor, 20);
         if ((time - latest_passed_blue_line_time) > 60)
         {
@@ -293,7 +291,7 @@ void tracer_task_R(intptr_t unused)
             doneFirstTask = takePhotoOfMinifigR(&motor_impals, &is_motor_stop, 90, 12);
             if (doneFirstTask)
             {
-                // doSecondTask = true;
+                doSecondTask = true;
             }
         }
     }
@@ -377,7 +375,6 @@ void tracer_task_R(intptr_t unused)
     }
 
     //----------------------5回目：-130°---------------------------------------------//
-    static bool_t escapeEllipse = false;
     if (doFifthTask && passThePerfectCercle)
     {
         // 撮影位置まで移動
@@ -403,12 +400,12 @@ void tracer_task_R(intptr_t unused)
         }
     }
 
-    //----------------------6回目：90°---------------------------------------------//
+    //----------------------6回目：-90°---------------------------------------------//
     if (doSixthTask && passThePerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
-        if (!arrive && angle > 90 && angle <= 0) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
+        if (!arrive && angle > -90 && angle <= 0) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
         {
             // 安定性確保のため機体ストップ
             is_motor_stop = true;
@@ -424,9 +421,7 @@ void tracer_task_R(intptr_t unused)
             doneSixthTask = takePhotoOfMinifigR(&motor_impals, &is_motor_stop, 100, 12); // ここを変更
             if (doneSixthTask)
             {
-                blue_line_count = 0;
-                target_color = 280;
-                escapeEllipse = true;
+                target_color = 200;
             }
         }
     }
@@ -440,6 +435,7 @@ void tracer_task_R(intptr_t unused)
             ・走行体をサークル中心に向けて少し動かす
             2023 : 80 100
     */
+    static bool_t escapeEllipse = false;
     if ((time - latest_passed_blue_line_time) > 0 && latest_passed_blue_line_time != 0 && blue_line_count == 3)
     {
         printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
@@ -453,6 +449,7 @@ void tracer_task_R(intptr_t unused)
             latest_passed_blue_line_time = 0;
             motor_impals = false;
             initialize_pid_value();
+            escapeEllipse = true;
         }
     }
 
@@ -576,6 +573,7 @@ int16_t towardsCenterOfPerfectCircleR(bool_t *pointer_motor_impals, bool_t *is_m
         // タスク終了したのでライントレースを再開
         *pointer_motor_impals = false;
         printf("【正円での撮影タスク：行き】終了\n");
+        // target_color = 200;
         return startAngle;
     }
 }
@@ -951,6 +949,8 @@ bool_t takePhotoOfMinifigR(bool_t *pointer_motor_impals, bool_t *is_motor_stop, 
         minifig_passShotTask = false;
         overcome_boundaries_towardsCenterOfEllipse = false;
         overcome_boundaries_backToStartPointAtEllipse = false;
+        timeCount = 0;
+        executedPython = false;
 
         return true;
     }
