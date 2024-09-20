@@ -25,6 +25,7 @@ def watch_folder(folder):
       # プラレール動画撮影
       capture_train.capture()
       print("撮影完了")
+      time.sleep(5)
       # ベストショット判定
       os.system("python ./train/train_bestshot.py")
 
