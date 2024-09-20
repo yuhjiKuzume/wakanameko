@@ -235,7 +235,7 @@ void tracer_task(intptr_t unused)
         motor_impals = true;
         ev3_motor_set_power(left_motor, 20); // 60
         ev3_motor_set_power(right_motor, 65);
-        if ((time - latest_passed_blue_line_time) > 60)
+        if ((time - latest_passed_blue_line_time) > 62)
         {
             latest_passed_blue_line_time = 0; // エッジ切り替えを無効化する為に作成
             passThePerfectCercle = true;
@@ -266,6 +266,9 @@ void tracer_task(intptr_t unused)
 
     static bool_t doFifthTask = false;
     static bool_t doneFifthTask = false;
+
+    static bool_t doSixthTask = false;
+    static bool_t doneSixthTask = false;
 
     //----------------------1回目：-50°---------------------------------------------//
     if (doFirstTask && passThePerfectCercle)
@@ -298,7 +301,7 @@ void tracer_task(intptr_t unused)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
-        if (!arrive && angle < -80) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
+        if (!arrive && angle < -90) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
         {
             // 安定性確保のため機体ストップ
             is_motor_stop = true;
@@ -311,7 +314,7 @@ void tracer_task(intptr_t unused)
         if (arrive && !doneSecondTask)
         {
             printf("【楕円でのミニフィグ撮影】２回目");
-            doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 82, 12); // ここを変更
             if (doneSecondTask)
             {
                 doThirdTask = true;
@@ -319,8 +322,34 @@ void tracer_task(intptr_t unused)
         }
     }
 
-    //----------------------3回目：-130°---------------------------------------------//
+    //----------------------3回目：-100°---------------------------------------------//
     if (doThirdTask && passThePerfectCercle)
+    {
+        // 撮影位置まで移動
+        static bool_t arrive = false;
+        if (!arrive && angle < -110) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
+        {
+            // 安定性確保のため機体ストップ
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
+            arrive = true;
+        }
+
+        // 撮影位置に到着すると撮影タスク開始
+        if (arrive && !doneThirdTask)
+        {
+            printf("【楕円でのミニフィグ撮影】３回目");
+            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
+            if (doneThirdTask)
+            {
+                doFourthTask = true;
+            }
+        }
+    }
+
+    //----------------------4回目：-130°---------------------------------------------//
+    if (doFourthTask && passThePerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -334,19 +363,20 @@ void tracer_task(intptr_t unused)
         }
 
         // 撮影位置に到着すると撮影タスク開始
-        if (arrive && !doneThirdTask)
+        if (arrive && !doneFourthTask)
         {
-            printf("【楕円でのミニフィグ撮影】３回目");
-            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 140, 12); // ここを変更
-            if (doneThirdTask)
+            printf("【楕円でのミニフィグ撮影】４回目");
+            doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 140, 12); // ここを変更
+            if (doneFourthTask)
             {
-                doFourthTask = true;
+                doFifthTask = true;
             }
         }
     }
 
-    //----------------------4回目：130°---------------------------------------------//
-    if (doFourthTask && passThePerfectCercle)
+    //----------------------5回目：130°---------------------------------------------//
+    static bool_t escapeEllipse = false;
+    if (doFifthTask && passThePerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -360,20 +390,19 @@ void tracer_task(intptr_t unused)
         }
 
         // 撮影位置に到着すると撮影タスク開始
-        if (arrive && !doneFourthTask)
+        if (arrive && !doneFifthTask)
         {
-            printf("【楕円でのミニフィグ撮影】４回目");
-            doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 60, 12); // ここを変更
-            if (doneFourthTask)
+            printf("【楕円でのミニフィグ撮影】５回目");
+            doneFifthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 60, 12); // ここを変更
+            if (doneFifthTask)
             {
-                doFifthTask = true;
+                doSixthTask = true;
             }
         }
     }
 
-    //----------------------5回目：90°---------------------------------------------//
-    static bool_t escapeEllipse = false;
-    if (doFifthTask && passThePerfectCercle)
+    //----------------------6回目：90°---------------------------------------------//
+    if (doSixthTask && passThePerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -387,13 +416,14 @@ void tracer_task(intptr_t unused)
         }
 
         // 撮影位置に到着すると撮影タスク開始
-        if (arrive && !doneFifthTask)
+        if (arrive && !doneSixthTask)
         {
-            printf("【楕円でのミニフィグ撮影】５回目");
-            doneFifthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
-            if (doneFifthTask)
+            printf("【楕円でのミニフィグ撮影】６回目");
+            doneSixthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 100, 12); // ここを変更
+            if (doneSixthTask)
             {
                 blue_line_count = 0;
+                target_color = 280;
                 escapeEllipse = true;
             }
         }
@@ -406,7 +436,6 @@ void tracer_task(intptr_t unused)
     if (escapeEllipse && !passEllipse && blue_line_count == 1)
     {
         printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
-        is_motor_stop = true;
         motor_impals = true;
         ev3_motor_set_power(left_motor, 50);
         ev3_motor_set_power(right_motor, 50);
@@ -423,7 +452,7 @@ void tracer_task(intptr_t unused)
     /*
     ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
     */
-    if (passEllipse && blue_line_count == 1)
+    if (passEllipse && check_Line_color_hsv(1))
     {
         is_motor_stop = true;
         ev3_motor_set_power(left_motor, 0);
@@ -648,7 +677,7 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
     if (!plarail_passShotTask && !doTowardsCenterOfPerfectCircle)
     {
         static int timeCount = 0;
-        plarail_passShotTask = waitMSecond(is_motor_stop, &timeCount, 3);
+        plarail_passShotTask = waitMSecond(is_motor_stop, &timeCount, 10);
 
         // 動画撮影のPythonの実行
         static bool_t executedPython = false;
