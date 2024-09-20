@@ -22,6 +22,7 @@ def capture(count):
   
   # 撮影
   picam2.start_and_capture_files(file_path, num_files=3, delay=0.5)
+  picam2.close()
 
   target_file_path = f"./{save_dir}/resize_minifig_{count}.jpg"
   img = cv2.imread(file_path)
