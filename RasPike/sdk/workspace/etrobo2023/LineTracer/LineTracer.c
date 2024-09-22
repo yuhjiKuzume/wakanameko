@@ -423,7 +423,7 @@ void tracer_task(intptr_t unused)
             if (doneSixthTask)
             {
                 blue_line_count = 0;
-                target_color = 280;
+                target_color = 200;
                 escapeEllipse = true;
             }
         }
@@ -439,13 +439,18 @@ void tracer_task(intptr_t unused)
         motor_impals = true;
         ev3_motor_set_power(left_motor, 50);
         ev3_motor_set_power(right_motor, 50);
-        if ((time - latest_passed_blue_line_time) > 40)
+        if ((time - latest_passed_blue_line_time) > 2500)
         { // 90
             selected_pid_parameter = 0;
             motor_impals = false;
             initialize_pid_value();
             passEllipse = true;
             blue_line_count = 0;
+
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
+
         }
     }
 

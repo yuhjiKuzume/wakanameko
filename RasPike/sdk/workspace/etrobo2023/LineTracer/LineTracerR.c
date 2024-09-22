@@ -440,9 +440,9 @@ void tracer_task_R(intptr_t unused)
     {
         printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
         motor_impals = true;
-        ev3_motor_set_power(left_motor, 60);
-        ev3_motor_set_power(right_motor, 40);
-        if ((time - latest_passed_blue_line_time) > 40)
+        ev3_motor_set_power(left_motor, 50);
+        ev3_motor_set_power(right_motor, 50);
+        if ((time - latest_passed_blue_line_time) > 2500)
         { // 90
             // trace_edge =
             selected_pid_parameter = 0;
@@ -450,6 +450,11 @@ void tracer_task_R(intptr_t unused)
             motor_impals = false;
             initialize_pid_value();
             escapeEllipse = true;
+
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
+
         }
     }
 
