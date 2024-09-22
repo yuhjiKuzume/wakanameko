@@ -234,8 +234,8 @@ void tracer_task(intptr_t unused)
 
         motor_impals = true;
         ev3_motor_set_power(left_motor, 20); // 60
-        ev3_motor_set_power(right_motor, 65);
-        if ((time - latest_passed_blue_line_time) > 62)
+        ev3_motor_set_power(right_motor, 60);
+        if ((time - latest_passed_blue_line_time) > 60)
         {
             latest_passed_blue_line_time = 0; // エッジ切り替えを無効化する為に作成
             passThePerfectCercle = true;
