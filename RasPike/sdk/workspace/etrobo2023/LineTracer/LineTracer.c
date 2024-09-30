@@ -25,12 +25,7 @@ void tracer_task(intptr_t unused)
     static int selected_pid_parameter = 0; // 0なら直線用pid　1なら楕円用pid(ベースカラーは270にする)
     static int blue_line_count = 0;        // 青ライン通過回数
 
-    // ポイント通過フラグ
-    static bool_t is_passing_through = false; // LAP通過をしたか
 
-    // 角度が-170度超えたかフラグ
-    static bool_t reachMinus170 = false;
-    static bool_t is_entering_double_loop = false;
     static bool_t is_entering_mini_circle = false;
 
     // モーター停止フラグ
@@ -46,9 +41,9 @@ void tracer_task(intptr_t unused)
     {
         blue_line_count++;
         latest_passed_blue_line_time = time;
-    }
-    printf("blue line cont:%d\n", blue_line_count);
+            printf("blue line cont:%d\n", blue_line_count);
     printf("time:%d\n", time / 100);
+    }
 
     // カラー情報を取得
     set_colorsensor_value();
@@ -57,194 +52,197 @@ void tracer_task(intptr_t unused)
     angle = ev3_gyro_sensor_get_angle(gyro_sensor);
     printf("angle:%d\n", angle);
 
-    // // 一回も-170度を超えてない状態で、-170度に到達した場合
-    if ((abs(angle) > 170) && !reachMinus170)
+    /*
+    ２つめのカーブに到達
+    */ 
+    bool_t reachSecondCurve = false;
+    if ((abs(angle) > 170) && !reachSecondCurve)
     {
         timeAtLapPoint = time;
-        reachMinus170 = true;
+        reachSecondCurve = true;
         dynamic_base_speed = 45;
     }
 
-    // LAP付近にきたら、右側トレースに切り替える
-    // コーナーを曲がった後（=170度に到達）、100秒後にエッジを切り替える
-    if ((time - timeAtLapPoint) > 100 && !is_passing_through && reachMinus170)
+    /*
+    LAP付近にきたら、右側トレースに切り替える
+    */ 
+    bool_t passLap = false;
+    if ( reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
     {
+        printf("------------------------------------Lap手前に到達------------------------------------\n");
 
-        printf("---------------------------------\n");
-        printf("Lap手前に到達\n");
-
+        // 確実に青を検知できるよう、機体のスピードを落とし黒線からの距離を離す
         dynamic_base_speed = 45;
-
         target_color = 270;
-        blue_line_count = 0; // Lap過ぎたら、blue_line_countを初期化
 
+        // 誤検知を考慮して、値をリセット
+        blue_line_count = 0;
         initialize_pid_value();
-
-        is_passing_through = true;
-        trace_edge = RIGHT_EDGE;
         ev3_gyro_sensor_reset(gyro_sensor);
         angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+
+        trace_edge = RIGHT_EDGE;
+        passLap = true;
     }
+
     /*
         ダブルループに進入
             ・ライントレースの目標値変更
     */
-    if (blue_line_count == 1 && angle > 30 && !is_entering_double_loop)
+    bool_t enteringDoubleLoop = false;
+    if (blue_line_count == 1 && angle > 30 && !enteringDoubleLoop)
     {
         printf("----------------------------------ダブルループ開始----------------------------------\n");
         target_color = 180;
-        is_entering_double_loop = true;
+        enteringDoubleLoop = true;
+        // 誤検知を考慮して、値をリセット
+        blue_line_count = 0;
         initialize_pid_value();
     }
 
     /*
-     プラレール・風景攻略
+    プラレール・風景攻略
     */
-    // プラレール撮影開始角度
-    /*
-    ※-10~0は設定しないでください(不具合が出ます)
-    */
-    static int16_t plarail_shooting_start_angle = 60; // ここを変更
-    // static int16_t plarail_shooting_start_angle = -90;
+    static int16_t takeVideoAngle = 110; // ここを変更
+    static bool_t passPerfectCercle = false;
 
-    /*
-    ダブルループに進入(サークル交点付近)を実施する角度(110)
-        90°を超えた位置なら【もう一周するフラグ】
-    */
-    static int16_t entering_double_loop_preparation_angle = 110;
-    static bool_t plarail_one_more_lap = false;
-    if ((90 < plarail_shooting_start_angle || plarail_shooting_start_angle <= 0) && !plarail_one_more_lap)
+    if (enteringDoubleLoop && !passPerfectCercle)
     {
-        printf("もう一周する！");
-        plarail_one_more_lap = true;
-    }
-
-    /*
-     プラレール・風景撮影
-    */
-    static bool_t doneTaskPlarail = false;
-    static bool_t arrivePlarailShootPosition = false; // 撮影位置に到着したかどうか
-
-    static bool_t plarail_1_Number_of_shots = false;
-    if (!arrivePlarailShootPosition && !plarail_1_Number_of_shots && blue_line_count >= 1)
-    {
-        if (plarail_shooting_start_angle > 0)
+        static bool_t loopedOnce = false;
+        /*
+        正円１周目
+        */ 
+        if (!loopedOnce)
         {
-            if (angle > plarail_shooting_start_angle)
+            printf("1周目");
+
+            static bool_t arriveTakeVideoPosition = false;
+            static bool_t doneTakeVideo = false;
+            static bool_t passHarf = false;
+
+            // 撮影位置まで移動
+            if (!arriveTakeVideoPosition)
             {
-                arrivePlarailShootPosition = true;
-                // 機体ストップ
-                is_motor_stop = true;
-                ev3_motor_set_power(left_motor, 0);
-                ev3_motor_set_power(right_motor, 0);
+                // ビデオ撮影箇所が正円前半の場合
+                if (takeVideoAngle >= 0)
+                {
+                    if (angle > takeVideoAngle)
+                    { // 機体ストップ
+                        is_motor_stop = true;
+                        ev3_motor_set_power(left_motor, 0);
+                        ev3_motor_set_power(right_motor, 0);
+                        arriveTakeVideoPosition = true;
+                    }
+                }
+                // ビデオ撮影箇所が正円後半の場合
+                else
+                {
+                    if (angle >= 180)
+                    {
+                        passHarf = true;
+                        printf("passHarf");
+                    }
+                    if (passHarf && (angle > takeVideoAngle))
+                    {
+                        is_motor_stop = true;
+                        ev3_motor_set_power(left_motor, 0);
+                        ev3_motor_set_power(right_motor, 0);
+                        arriveTakeVideoPosition = true;
+                    }
+                }
+            }
+            // 撮影位置到達後動画撮影
+            if (!doneTakeVideo && arriveTakeVideoPosition)
+            {
+                // 90°曲げる、遠心力を考慮して14°手前で止める
+                doneTakeVideo = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
+            }
+            if (doneTakeVideo)
+            {
+                if (angle > -10 && angle < 0)
+                {
+                    printf("loopedOndeをtrue");
+                    printf("-time:%d\n", time);
+                    is_motor_stop = false;
+                    motor_impals = false;
+                    loopedOnce = true;
+                }
             }
         }
-        // 0°以上の場合は、ダブルループに入った時点でフラグが経ってしまう為、それを回避する為に設定
-        else if (plarail_shooting_start_angle <= 0)
-        {
-            if (angle < -10 && angle > plarail_shooting_start_angle)
-            {
-                arrivePlarailShootPosition = true;
-                // 機体ストップ
-                is_motor_stop = true;
-                ev3_motor_set_power(left_motor, 0);
-                ev3_motor_set_power(right_motor, 0);
+
+        // センサーが連続周回で壊れるため、一度静止＋値のリセット
+        static bool_t resetedValue = false;
+        static bool_t doneWait = false;
+        static int waitTimer = 0;
+        if(loopedOnce && !resetedValue){
+            // 一度静止
+            doneWait = waitMSecond(is_motor_stop, &waitTimer, 3);
+            // 静止後、値のリセット
+            if(doneWait){
+                // センサー関係の値全リセット
+                initialize_pid_value();
+                ev3_gyro_sensor_reset(gyro_sensor);
+                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+                is_motor_stop = false;
+                motor_impals = false;
+                target_color = 180;
+
+                resetedValue = true;
             }
         }
-    }
-    if (!doneTaskPlarail && arrivePlarailShootPosition)
-    {
-        // 90°曲げる、遠心力を考慮して14°手前で止める
-        doneTaskPlarail = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
-    }
 
-    /*
-        ダブルループに進入(サークル交点付近)
-            ・トレースエッジの変更(右→左)
-            ・ミニフィグ撮影開始指示(START1ファイル作成)
-
-            「LAPを通過している」かつ「プラレール撮影が完了している」状態で、設定角度に到達した場合
-            ※ 後のコードの影響を考慮し、ブルーラインカウントは1にリセットする
-
-
-            【-120°~-180°の間で、プラレール撮影が行われた場合、終了地点でこのコードが起動され、エッジが切り替わってしまうため、
-            問題が発生する場合は対処する】
-    */
-    static int16_t count_preparation_point = 0;
-    if (is_passing_through && angle > entering_double_loop_preparation_angle && !is_entering_mini_circle)
-    {
-        count_preparation_point++;
-        // プラレール撮影回数が1の時、かつ【もう一周するフラグ】がfalse
-        if (!plarail_one_more_lap && doneTaskPlarail)
+        /*
+        正円２周目
+        */ 
+        if (loopedOnce && resetedValue)
         {
-            printf("----------------------------------【一週目で大サークルを抜ける為エッジ切り替え】----------------------------------\n");
+            printf("2周目");
+            // 楕円交差点部分に向けてエッジ切り替え
+            static bool_t changedEdge = false;
+            if (angle > 110 && !changedEdge)
+            {
+                printf("【正円部】エッジ切り替え\n");
+                is_motor_stop = false;
+                motor_impals = false;
+                initialize_pid_value();
+                trace_edge = LEFT_EDGE;
 
-            // ブルーラインカウントを1にリセット
-            blue_line_count = 1;
+                blue_line_count = 0;
+                changedEdge = true;
+                printf("time%d:\n", time);
+            }
+            // 交差点を突破
+            if (changedEdge && blue_line_count == 1)
+            {
+                printf("----------------------------------【楕円突入】まっすぐGo----------------------------------");
 
-            trace_edge = LEFT_EDGE;
-            initialize_pid_value();
-            ev3_gyro_sensor_reset(gyro_sensor);
-            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-            is_entering_mini_circle = true;
+                // 角度リセット
+                static bool_t is_reset_angle = false;
+                if (!is_reset_angle)
+                {
+                    ev3_gyro_sensor_reset(gyro_sensor);
+                    angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+                    is_reset_angle = true;
+                }
 
-            // ベーススピードを45に戻す
-            dynamic_base_speed = 45;
-        }
-        else if (plarail_one_more_lap && count_preparation_point >= 2 && doneTaskPlarail)
-        {
-            printf("----------------------------------【二週目で大サークルを抜ける為エッジ切り替え】----------------------------------\n");
+                motor_impals = true;
+                ev3_motor_set_power(left_motor, 20); // 60
+                ev3_motor_set_power(right_motor, 65);
+                if ((time - latest_passed_blue_line_time) > 60)
+                {
+                    passPerfectCercle = true;
 
-            // ブルーラインカウントを1にリセット
-            blue_line_count = 1;
+                    is_motor_stop = true;
+                    ev3_motor_set_power(left_motor, 0); // 60
+                    ev3_motor_set_power(right_motor, 0);
 
-            trace_edge = LEFT_EDGE;
-            initialize_pid_value();
-            ev3_gyro_sensor_reset(gyro_sensor);
-            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-            is_entering_mini_circle = true;
-
-            // ベーススピードを45に戻す
-            dynamic_base_speed = 45;
-        }
-    }
-
-    /*
-        小サークルに進入
-            ・走行体をサークル中心に向けて少し動かす
-            ・(2023)トレースエッジを切替(右→左) 80 110
-            ・(2024)トレースエッジそのまま 60 90
-            フラグ
-
-            【このタイミングでangleリセット】
-    */
-    static bool_t passThePerfectCercle = false;
-    if ((time - latest_passed_blue_line_time) > 40 && latest_passed_blue_line_time > 0 && blue_line_count == 2 && !passThePerfectCercle && is_entering_mini_circle)
-    {
-        printf("----------------------------------【楕円突入】まっすぐGo----------------------------------");
-
-        // 角度リセット
-        static bool_t is_reset_angle = false;
-        if (!is_reset_angle)
-        {
-            ev3_gyro_sensor_reset(gyro_sensor);
-            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-            is_reset_angle = true;
-        }
-
-        motor_impals = true;
-        ev3_motor_set_power(left_motor, 20); // 60
-        ev3_motor_set_power(right_motor, 60);
-        if ((time - latest_passed_blue_line_time) > 60)
-        {
-            latest_passed_blue_line_time = 0; // エッジ切り替えを無効化する為に作成
-            passThePerfectCercle = true;
-
-            motor_impals = false;
-            initialize_pid_value();
-            dynamic_base_speed = 45;
-            selected_pid_parameter = 1;
-            // target_color = 270;
+                    // motor_impals = false;
+                    initialize_pid_value();
+                    dynamic_base_speed = 45;
+                    selected_pid_parameter = 1;
+                    // target_color = 270;
+                }
+            }
         }
     }
 
