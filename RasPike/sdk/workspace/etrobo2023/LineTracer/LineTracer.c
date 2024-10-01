@@ -480,90 +480,103 @@ start_video(char *filename)
 static bool_t doTowardsCenterOfPerfectCircle = true;
 static bool_t doBackToStartPointAtPerfectCircle = true;
 
-static bool_t positionValueIsNull_towardsCenterOfPerfectCircle = true;
-static bool_t isNeedAngleBuffer_towardsCenterOfPerfectCircle = false;
-static bool_t doneTask_towardsCenterOfPerfectCircle = false;
 static bool_t positionValueIsNull_backToStartPointAtPerfectCircle = true;
 static bool_t isNeedAngleBuffer_backToStartPointAtPerfectCircle = false;
 static bool_t doneTask_backToStartPointAtPerfectCircle = false;
 static bool_t plarail_passShotTask = false;
 // 境界を乗り越える場合か
-static bool_t overcome_boundaries_towardsCenterOfPerfectCircle = false;
 static bool_t overcome_boundaries_backToStartPointAtPerfectCircle = false;
 
-// /* 正円にて、走行体を正円の中央に向ける */
+/* 正円にて、走行体を正円の中央に向ける */
 int16_t towardsCenterOfPerfectCircle(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t moveAngle, int16_t inertiaAmount)
 {
-    printf("【正円での撮影タスク：行き】開始\n");
     // このタスク終了までライントレースを切る
     *pointer_motor_impals = true;
 
-    // 初期アングルから、到着角度を計算
+    /*
+    移動開始地点と到着地点の角度を設定
+    */
+    static bool_t positionValueIsNull = true;
     static int16_t startAngle;
     static int16_t arrivalAngle;
-
-    if (positionValueIsNull_towardsCenterOfPerfectCircle)
+    if (positionValueIsNull)
     {
+        printf("【正円での撮影タスク：行き】開始\n");
         startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
-
+        // 初期アングルから、到着角度を計算
         arrivalAngle = startAngle + (moveAngle - inertiaAmount);
-
         if (arrivalAngle > 180)
         {
             arrivalAngle = -181 + (abs(arrivalAngle) - 179);
         }
-        positionValueIsNull_towardsCenterOfPerfectCircle = false;
+        positionValueIsNull = false;
         printf("startAngle : %d\n", startAngle);
         printf("arrivalAngle : %d\n", arrivalAngle);
     }
 
-    // 正負の間際の場合角度に猶予をつける
-    if (170 < arrivalAngle && !isNeedAngleBuffer_towardsCenterOfPerfectCircle)
+    /*
+    開始地点と到着地点の角度に応じて、条件式を変更するためのフラグを調整
+    */ 
+    static bool_t isNeedAngleBuffer = false;
+    static bool_t conditionIsInvert = false;
+    // 到着角度が正負のギリギリ(ex. 179°など)の場合、少し過ぎて負に行っても止まるよう、猶予のフラグを立てる
+    if (170 < arrivalAngle)
     {
-        isNeedAngleBuffer_towardsCenterOfPerfectCircle = true;
+        isNeedAngleBuffer = true;
+    }
+    // スタート位置が既に到着位置より大きい（スタート位置：正 到着位置：負）場合、移動継続の条件式を変えるよう、継続条件変更のフラグを立てる
+    if (startAngle > arrivalAngle)
+    {
+        conditionIsInvert = true;
     }
 
-    // 境界を乗り越える場合 フラグをtrue
-    if ((startAngle > 0 && arrivalAngle < 0) && !overcome_boundaries_towardsCenterOfPerfectCircle)
-    {
-        overcome_boundaries_towardsCenterOfPerfectCircle = true;
-    }
-
-    // 到着角度になるまで車輪を動かす
-
-    printf("【正円での撮影タスク：行き】撮影位置への移動開始\n");
-    if ((angle < arrivalAngle) && !doneTask_towardsCenterOfPerfectCircle && !overcome_boundaries_towardsCenterOfPerfectCircle)
-    {
-        printf("【正円での撮影タスク：行き】移動中\n");
-        // 170~180のものは、負になった時点で動作を止める
-        if (isNeedAngleBuffer_towardsCenterOfPerfectCircle && 0 > angle)
+    /*
+    到着角度まで車輪を動かす
+    */ 
+    static bool_t arrive = false;
+    if(!arrive){
+        // 到着角度になるまで車輪を動かす
+        if (!conditionIsInvert && (angle < arrivalAngle))
         {
-            printf("バッファで止める");
-            doneTask_towardsCenterOfPerfectCircle = true;
+            printf("【正円での撮影タスク：行き】移動中・・・\n");
+            // 170~180のものは、負になった時点で動作を止める
+            if (isNeedAngleBuffer && 0 > angle)
+            {
+                printf("【正円での撮影タスク：行き】撮影位置に到着");
+                arrive = true;
+            }
+            ev3_motor_set_power(right_motor, -60);
         }
-        ev3_motor_set_power(right_motor, -60);
-    }
-    else if (overcome_boundaries_towardsCenterOfPerfectCircle && (angle > 0 || angle < arrivalAngle) && !doneTask_towardsCenterOfPerfectCircle)
-    {
-        printf("【正円での撮影タスク：行き】移動中 【乗り越えver】\n");
-        ev3_motor_set_power(right_motor, -60);
-    }
-    else
-    {
-        printf("正常系で止める");
-        doneTask_towardsCenterOfPerfectCircle = true;
+        // 到着角度になるまで車輪を動かす(正→負に動かす場合の条件式)
+        else if (conditionIsInvert && (angle > 0 || angle < arrivalAngle))
+        {
+            printf("【正円での撮影タスク：行き】移動中・・・\n");
+            ev3_motor_set_power(right_motor, -60);
+        }
+        // 撮影地点に到達した場合
+        else
+        {
+            printf("【正円での撮影タスク：行き】撮影位置に到着");
+            arrive = true;
+        }
     }
 
-    if (doneTask_towardsCenterOfPerfectCircle)
+    if (arrive)
     {
         // 動作停止
         is_motor_stop = true;
         ev3_motor_set_power(left_motor, 0);
         ev3_motor_set_power(right_motor, 0);
 
+        // このタスクのフラグをリセット
+        positionValueIsNull = true;
+        isNeedAngleBuffer = false;
+        conditionIsInvert = false;
+        arrive = false;
+
         // タスク終了フラグ更新
         doTowardsCenterOfPerfectCircle = false;
-        doneTask_towardsCenterOfPerfectCircle = false;
+        
         // タスク終了したのでライントレースを再開
         *pointer_motor_impals = false;
         printf("【正円での撮影タスク：行き】終了\n");
