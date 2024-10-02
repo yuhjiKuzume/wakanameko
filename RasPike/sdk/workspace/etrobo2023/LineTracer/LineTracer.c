@@ -476,16 +476,9 @@ start_video(char *filename)
 }
 
 //------------------------プラレール・風景攻略用メソッド------------------------//
-// メソッド全体のフラグ
+// 行き・帰りを管理するフラグ
 static bool_t doTowardsCenterOfPerfectCircle = true;
 static bool_t doBackToStartPointAtPerfectCircle = true;
-
-static bool_t positionValueIsNull_backToStartPointAtPerfectCircle = true;
-static bool_t isNeedAngleBuffer_backToStartPointAtPerfectCircle = false;
-static bool_t doneTask_backToStartPointAtPerfectCircle = false;
-static bool_t plarail_passShotTask = false;
-// 境界を乗り越える場合か
-static bool_t overcome_boundaries_backToStartPointAtPerfectCircle = false;
 
 /* 正円にて、走行体を正円の中央に向ける */
 int16_t towardsCenterOfPerfectCircle(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t moveAngle, int16_t inertiaAmount)
@@ -585,80 +578,83 @@ int16_t towardsCenterOfPerfectCircle(bool_t *pointer_motor_impals, bool_t *is_mo
 }
 
 /* 正円にて、撮影位置からライン上に復帰する */
-bool_t backToStartPointAtPerfectCircle(int16_t startAngle, bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t inertiaAmount)
+bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t inertiaAmount)
 {
     printf("【正円での撮影タスク：帰り】開始\n");
     // このタスク終了までライントレースを切る
     *pointer_motor_impals = true;
 
-    // 帰り用の到着角度を計算
-    static int16_t startAngle_backToStartPointAtPerfectCircle;
-    static int16_t arrivalAngle_backToStartPointAtPerfectCircle;
-
-    if (positionValueIsNull_backToStartPointAtPerfectCircle)
+    /*
+    現在位置と復帰地点の角度を設定
+    */
+    static int16_t startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+    // 行きメソッドの開始地点から、復帰角度を逆算
+    arrivalAngle = arrivalAngle + inertiaAmount;
+    if (arrivalAngle > 180)
     {
-        startAngle_backToStartPointAtPerfectCircle = ev3_gyro_sensor_get_angle(gyro_sensor);
+        arrivalAngle = -181 + (abs(arrivalAngle) - 179);
+    }
 
-        arrivalAngle_backToStartPointAtPerfectCircle = startAngle + inertiaAmount;
+    /*
+    現在地点と復帰地点の角度に応じて、条件式を変更するためのフラグを調整
+    */
+    static bool_t isNeedAngleBuffer = false;
+    static bool_t conditionIsInvert = false;
+    // 到着角度が正負のギリギリ(ex. -179°など)の場合、少し過ぎて正に行っても止まるよう、猶予のフラグを立てる
+    if (-170 > arrivalAngle && !isNeedAngleBuffer)
+    {
+        isNeedAngleBuffer = true;
+    }
+    // スタート位置が既に到着位置より小さい（スタート位置：負 到着位置：正）場合、移動継続の条件式を変えるよう、継続条件変更のフラグを立てる
+    if (startAngle <  arrivalAngle)
+    {
+        conditionIsInvert = true;
+    }
 
-        if (arrivalAngle_backToStartPointAtPerfectCircle > 180)
+    /*
+    復帰地点角度まで車輪を動かす
+    */ 
+    bool_t arrive = false;
+    if(!arrive){
+        // 到着角度になるまで車輪を動かす
+        if (arrivalAngle < angle && !conditionIsInvert)
         {
-            arrivalAngle_backToStartPointAtPerfectCircle = -181 + (abs(arrivalAngle_backToStartPointAtPerfectCircle) - 179);
+            printf("【正円での撮影タスク：行き】移動中・・・\n");
+            // -170~-179のものは、正になった時点で動作を止める
+            if (isNeedAngleBuffer && 0 < angle)
+            {
+                arrive = true;
+            }
+            ev3_motor_set_power(right_motor, 60);
         }
-        positionValueIsNull_backToStartPointAtPerfectCircle = false;
-        printf("startAngle_backToStartPointAtPerfectCircle : %d\n", startAngle_backToStartPointAtPerfectCircle);
-        printf("arrivalAngle_backToStartPointAtPerfectCircle : %d\n", arrivalAngle_backToStartPointAtPerfectCircle);
-    }
-
-    if (-170 > arrivalAngle_backToStartPointAtPerfectCircle && !isNeedAngleBuffer_backToStartPointAtPerfectCircle)
-    {
-        isNeedAngleBuffer_backToStartPointAtPerfectCircle = true;
-    }
-
-    // 境界を乗り越える場合 フラグをtrue
-    if ((startAngle_backToStartPointAtPerfectCircle < 0 && arrivalAngle_backToStartPointAtPerfectCircle > 0) && !overcome_boundaries_backToStartPointAtPerfectCircle)
-    {
-        overcome_boundaries_backToStartPointAtPerfectCircle = true;
-    }
-
-    // 復帰地点まで動かす
-
-    printf("【正円での撮影タスク：帰り】撮影位置への移動開始\n");
-    if (arrivalAngle_backToStartPointAtPerfectCircle < angle && !doneTask_backToStartPointAtPerfectCircle && !overcome_boundaries_backToStartPointAtPerfectCircle)
-    {
-        printf("【正円での撮影タスク：帰り】移動中\n");
-        // -170~-179のものは、正になった時点で動作を止める
-        if (isNeedAngleBuffer_backToStartPointAtPerfectCircle && 0 < angle)
+        // 到着角度になるまで車輪を動かす(負→正に動かす場合の条件式)
+        else if (conditionIsInvert && (angle < 0 || arrivalAngle < angle))
         {
-            printf("バッファで止める");
-            doneTask_backToStartPointAtPerfectCircle = true;
+            printf("【正円での撮影タスク：行き】移動中・・・\n");
+            ev3_motor_set_power(right_motor, 60);
         }
-        ev3_motor_set_power(right_motor, 60);
-    }
-    else if (overcome_boundaries_backToStartPointAtPerfectCircle && (angle < 0 || arrivalAngle_backToStartPointAtPerfectCircle < angle) && !doneTask_backToStartPointAtPerfectCircle)
-    {
-        printf("【正円での撮影タスク：帰り】移動中 【乗り越えver】\n");
-        ev3_motor_set_power(right_motor, 60);
-    }
-    else
-    {
-        printf("正常系で止める");
-        doneTask_backToStartPointAtPerfectCircle = true;
+        // 撮影地点に到達した場合
+        else
+        {
+            printf("【正円での撮影タスク：行き】撮影位置に到着");
+            arrive = true;
+        }
     }
 
-    if (doneTask_backToStartPointAtPerfectCircle)
+    if (arrive)
     {
         // 動作停止
         is_motor_stop = true;
         ev3_motor_set_power(left_motor, 0);
         ev3_motor_set_power(right_motor, 0);
 
+        // このタスクのフラグをリセット
+        isNeedAngleBuffer = false;
+        conditionIsInvert = false;
+        arrive = false;
+
         // タスク終了フラグ更新
         doBackToStartPointAtPerfectCircle = false;
-        doneTask_backToStartPointAtPerfectCircle = false;
-
-        // pidパラメータリセット
-        initialize_pid_value();
 
         // タスク終了したのでライントレースを再開
         *pointer_motor_impals = false;
@@ -670,25 +666,26 @@ bool_t backToStartPointAtPerfectCircle(int16_t startAngle, bool_t *pointer_motor
 /* プラレール・風景攻略の実行メソッド */
 bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int moveAngle, int inertiaAmount)
 {
+    // プラレール・風景撮影完了フラグ
+    static bool_t doneTask = false
+
     // 動作を停止させる
     ev3_motor_set_power(left_motor, 0);
     ev3_motor_set_power(right_motor, 0);
 
     // 走行体を撮影方向に向ける
     static int16_t startAngle;
-
-    static bool_t doneTask = false;
-
     if (doTowardsCenterOfPerfectCircle)
     {
         startAngle = towardsCenterOfPerfectCircle(pointer_motor_impals, is_motor_stop, moveAngle, inertiaAmount);
     }
 
     // 写真を撮って、パーフェクトショットか判定
-    if (!plarail_passShotTask && !doTowardsCenterOfPerfectCircle)
+    static bool_t snaped = false;
+    if (!snaped && !doTowardsCenterOfPerfectCircle)
     {
         static int timeCount = 0;
-        plarail_passShotTask = waitMSecond(is_motor_stop, &timeCount, 10);
+        snaped = waitMSecond(is_motor_stop, &timeCount, 10);
 
         // 動画撮影のPythonの実行
         static bool_t executedPython = false;
@@ -705,7 +702,7 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
     }
 
     // 元の位置に戻す
-    if (doBackToStartPointAtPerfectCircle && !doTowardsCenterOfPerfectCircle && plarail_passShotTask)
+    if (doBackToStartPointAtPerfectCircle && !doTowardsCenterOfPerfectCircle && snaped)
     {
         doneTask = backToStartPointAtPerfectCircle(startAngle, pointer_motor_impals, is_motor_stop, inertiaAmount);
     }
