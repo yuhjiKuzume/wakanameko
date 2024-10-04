@@ -580,7 +580,8 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
     /*
     現在位置と復帰地点の角度を設定
     */
-    static int16_t startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+    static int16_t startAngle;
+    startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
     // 行きメソッドの開始地点から、復帰角度を逆算
     arrivalAngle = arrivalAngle + inertiaAmount;
     if (arrivalAngle > 180)
@@ -820,7 +821,8 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
     /*
     現在位置と復帰地点の角度を設定
     */
-    static int16_t startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+    static int16_t startAngle;
+    startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
     // 行きメソッドの開始地点から、復帰角度を逆算
     arrivalAngle = startAngle - inertiaAmount;
     if (arrivalAngle < -179)
