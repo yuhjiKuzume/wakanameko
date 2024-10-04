@@ -55,7 +55,7 @@ void tracer_task(intptr_t unused)
     /*
     ２つめのカーブに到達
     */ 
-    bool_t reachSecondCurve = false;
+    static bool_t reachSecondCurve = false;
     if ((abs(angle) > 170) && !reachSecondCurve)
     {
         timeAtLapPoint = time;
@@ -66,7 +66,7 @@ void tracer_task(intptr_t unused)
     /*
     LAP付近にきたら、右側トレースに切り替える
     */ 
-    bool_t passLap = false;
+    static bool_t passLap = false;
     if ( reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
     {
         printf("------------------------------------Lap手前に到達------------------------------------\n");
@@ -89,7 +89,7 @@ void tracer_task(intptr_t unused)
         ダブルループに進入
             ・ライントレースの目標値変更
     */
-    bool_t enteringDoubleLoop = false;
+    static bool_t enteringDoubleLoop = false;
     if (blue_line_count == 1 && angle > 30 && !enteringDoubleLoop)
     {
         printf("----------------------------------ダブルループ開始----------------------------------\n");
@@ -161,7 +161,6 @@ void tracer_task(intptr_t unused)
             {
                 if (angle > -10 && angle < 0)
                 {
-                    printf("loopedOndeをtrue");
                     printf("-time:%d\n", time);
                     is_motor_stop = false;
                     motor_impals = false;
@@ -209,7 +208,7 @@ void tracer_task(intptr_t unused)
 
                 blue_line_count = 0;
                 changedEdge = true;
-                printf("time%d:\n", time);
+                printf("time:%d\n", time);
             }
             // 交差点を突破
             if (changedEdge && blue_line_count == 1)
@@ -269,7 +268,7 @@ void tracer_task(intptr_t unused)
     static bool_t doneSixthTask = false;
 
     //----------------------1回目：-50°---------------------------------------------//
-    if (doFirstTask && passThePerfectCercle)
+    if (doFirstTask && passPerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -295,7 +294,7 @@ void tracer_task(intptr_t unused)
     }
 
     //----------------------2回目：-90°---------------------------------------------//
-    if (doSecondTask && passThePerfectCercle)
+    if (doSecondTask && passPerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -321,7 +320,7 @@ void tracer_task(intptr_t unused)
     }
 
     //----------------------3回目：-100°---------------------------------------------//
-    if (doThirdTask && passThePerfectCercle)
+    if (doThirdTask && passPerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -347,7 +346,7 @@ void tracer_task(intptr_t unused)
     }
 
     //----------------------4回目：-130°---------------------------------------------//
-    if (doFourthTask && passThePerfectCercle)
+    if (doFourthTask && passPerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -374,7 +373,7 @@ void tracer_task(intptr_t unused)
 
     //----------------------5回目：130°---------------------------------------------//
     static bool_t escapeEllipse = false;
-    if (doFifthTask && passThePerfectCercle)
+    if (doFifthTask && passPerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -400,7 +399,7 @@ void tracer_task(intptr_t unused)
     }
 
     //----------------------6回目：90°---------------------------------------------//
-    if (doSixthTask && passThePerfectCercle)
+    if (doSixthTask && passPerfectCercle)
     {
         // 撮影位置まで移動
         static bool_t arrive = false;
@@ -438,7 +437,7 @@ void tracer_task(intptr_t unused)
         ev3_motor_set_power(left_motor, 40);
         ev3_motor_set_power(right_motor, 60);
         if ((time - latest_passed_blue_line_time) > 40)
-        { // 90
+        {
             selected_pid_parameter = 0;
             motor_impals = false;
             initialize_pid_value();
@@ -468,12 +467,6 @@ void tracer_task(intptr_t unused)
     ext_tsk();
 }
 
-start_video(char *filename)
-{
-    FILE *file;
-    file = fopen(filename, "w");
-    fclose(file);
-}
 
 //------------------------プラレール・風景攻略用メソッド------------------------//
 // 行き・帰りを管理するフラグ
@@ -606,7 +599,7 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
         isNeedAngleBuffer = true;
     }
     // スタート位置が既に到着位置より小さい（スタート位置：負 到着位置：正）場合、移動継続の条件式を変えるよう、継続条件変更のフラグを立てる
-    if (startAngle <  arrivalAngle)
+    if (startAngle <  arrivalAngle && !conditionIsInvert)
     {
         conditionIsInvert = true;
     }
@@ -619,7 +612,7 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
         // 到着角度になるまで車輪を動かす
         if (arrivalAngle < angle && !conditionIsInvert)
         {
-            printf("【正円での撮影タスク：行き】移動中・・・\n");
+            printf("【正円での撮影タスク：帰り】移動中・・・\n");
             // -170~-179のものは、正になった時点で動作を止める
             if (isNeedAngleBuffer && 0 < angle)
             {
@@ -630,13 +623,13 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
         // 到着角度になるまで車輪を動かす(負→正に動かす場合の条件式)
         else if (conditionIsInvert && (angle < 0 || arrivalAngle < angle))
         {
-            printf("【正円での撮影タスク：行き】移動中・・・\n");
+            printf("【正円での撮影タスク：帰り】移動中・・・\n");
             ev3_motor_set_power(right_motor, 60);
         }
         // 撮影地点に到達した場合
         else
         {
-            printf("【正円での撮影タスク：行き】撮影位置に到着");
+            printf("【正円での撮影タスク：帰り】元のライン上に到着");
             arrive = true;
         }
     }
@@ -722,17 +715,6 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
 static bool_t doTowardsCenterOfEllipse = true;
 static bool_t doBackToStartPointAtEllipse = true;
 
-static bool_t positionValueIsNull_towardsCenterOfEllipse = true;
-static bool_t isNeedAngleBuffer_towardsCenterOfEllipse = false;
-static bool_t doneTask_towardsCenterOfEllipse = false;
-static bool_t positionValueIsNull_backToStartPointAtEllipse = true;
-static bool_t isNeedAngleBuffer_backToStartPointAtEllipse = false;
-static bool_t doneTask_backToStartPointAtEllipse = false;
-static bool_t minifig_passShotTask = false;
-// 境界を乗り越える場合か
-static bool_t overcome_boundaries_towardsCenterOfEllipse = false;
-static bool_t overcome_boundaries_backToStartPointAtEllipse = false;
-
 /* 楕円にて、走行体を楕円の中央に向ける */
 int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t moveAngle, int16_t inertiaAmount)
 {
@@ -740,71 +722,87 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
     // このタスク終了までライントレースを切る
     *pointer_motor_impals = true;
 
-    // 初期アングルから、到着角度を計算
+    /*
+    移動開始地点と到着地点の角度を設定
+    */
+    static bool_t positionValueIsNull = true;
     static int16_t startAngle;
     static int16_t arrivalAngle;
-
-    if (positionValueIsNull_towardsCenterOfEllipse)
+    if (positionValueIsNull)
     {
         startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
-
         arrivalAngle = startAngle - (moveAngle - inertiaAmount);
 
         if (arrivalAngle < -179)
         {
             arrivalAngle = 181 - (abs(arrivalAngle) - 179);
         }
-        positionValueIsNull_towardsCenterOfEllipse = false;
+        positionValueIsNull = false;
         printf("startAngle : %d\n", startAngle);
         printf("arrivalAngle : %d\n", arrivalAngle);
     }
 
-    // 正負の間際の場合角度に猶予をつける
-    if (-170 > arrivalAngle && !isNeedAngleBuffer_towardsCenterOfEllipse)
+    /*
+    開始地点と到着地点の角度に応じて、条件式を変更するためのフラグを調整
+    */ 
+    static bool_t isNeedAngleBuffer = false;
+    static bool_t conditionIsInvert = false;
+    // 到着角度が正負のギリギリ(ex. -179°など)の場合、少し過ぎて正に行っても止まるよう、猶予のフラグを立てる
+    if (-170 > arrivalAngle && !isNeedAngleBuffer)
     {
-        isNeedAngleBuffer_towardsCenterOfEllipse = true;
+        isNeedAngleBuffer = true;
+    }
+    // スタート位置が既に到着位置より小さい（スタート位置：負 到着位置：正）場合、移動継続の条件式を変えるよう、継続条件変更のフラグを立てる
+    if (startAngle < arrivalAngle && !conditionIsInvert)
+    {
+        conditionIsInvert = true;
     }
 
-    // 境界を乗り越える場合 フラグをtrue
-    if ((startAngle < 0 && arrivalAngle > 0) && !overcome_boundaries_towardsCenterOfEllipse)
-    {
-        overcome_boundaries_towardsCenterOfEllipse = true;
-    }
-
-    // 到着角度になるまで車輪を動かす
-    printf("【楕円での撮影タスク：行き】撮影位置への移動開始\n");
-    if ((angle > arrivalAngle) && !doneTask_towardsCenterOfEllipse && !overcome_boundaries_towardsCenterOfEllipse)
-    {
-        printf("【楕円での撮影タスク：行き】移動中\n");
-        // -170~-179のものは、負になった時点で動作を止める
-        if (isNeedAngleBuffer_towardsCenterOfEllipse && 0 < angle)
+    /*
+    到着角度まで車輪を動かす
+    */ 
+    static bool_t arrive = false;
+    if(!arrive){
+        // 到着角度になるまで車輪を動かす
+        if ((angle > arrivalAngle) && !conditionIsInvert)
         {
-            printf("バッファで止める");
-            doneTask_towardsCenterOfEllipse = true;
+            printf("【楕円での撮影タスク：行き】移動中・・・\n");
+            // -170~-179のものは、負になった時点で動作を止める
+            if (isNeedAngleBuffer && 0 < angle)
+            {
+                arrive = true;
+            }
+            ev3_motor_set_power(right_motor, 60);
         }
-        ev3_motor_set_power(right_motor, 60);
-    }
-    else if (overcome_boundaries_towardsCenterOfEllipse && (angle < 0 || angle > arrivalAngle) && !doneTask_towardsCenterOfEllipse)
-    {
-        printf("【楕円での撮影タスク：行き】移動中 【乗り越えver】\n");
-        ev3_motor_set_power(right_motor, 60);
-    }
-    else
-    {
-        printf("正常系で止める");
-        doneTask_towardsCenterOfEllipse = true;
+        // 到着角度になるまで車輪を動かす(正→負に動かす場合の条件式)
+        else if (conditionIsInvert && (angle < 0 || angle > arrivalAngle))
+        {
+            printf("【楕円での撮影タスク：行き】移動中・・・\n");
+            ev3_motor_set_power(right_motor, 60);
+        }
+        // 撮影地点に到達した場合        
+        else
+        {
+            printf("【楕円での撮影タスク：行き】撮影位置に到着");
+            arrive = true;
+        }
     }
 
-    if (doneTask_towardsCenterOfEllipse)
+    if (arrive)
     {
         // 動作停止
         is_motor_stop = true;
         ev3_motor_set_power(left_motor, 0);
         ev3_motor_set_power(right_motor, 0);
 
+        // このタスクのフラグをリセット
+        isNeedAngleBuffer = false;
+        conditionIsInvert = false;
+        arrive = false;
+
         // タスク終了フラグ更新
         doTowardsCenterOfEllipse = false;
-        doneTask_towardsCenterOfEllipse = false;
+
         // タスク終了したのでライントレースを再開
         *pointer_motor_impals = false;
         printf("【楕円での撮影タスク：行き】終了\n");
@@ -813,79 +811,84 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
 }
 
 /* 楕円にて、撮影位置からライン上に復帰する */
-bool_t backToStartPointAtEllipse(int16_t startAngle, bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t inertiaAmount)
+bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_impals, bool_t *is_motor_stop, int16_t inertiaAmount)
 {
     printf("【楕円での撮影タスク：帰り】開始\n");
     // このタスク終了までライントレースを切る
     *pointer_motor_impals = true;
 
-    // 帰り用の到着角度を計算
-    static int16_t startAngle_backToStartPointAtEllipse;
-    static int16_t arrivalAngle_backToStartPointAtEllipse;
-
-    if (positionValueIsNull_backToStartPointAtEllipse)
+    /*
+    現在位置と復帰地点の角度を設定
+    */
+    static int16_t startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+    // 行きメソッドの開始地点から、復帰角度を逆算
+    arrivalAngle = startAngle - inertiaAmount;
+    if (arrivalAngle < -179)
     {
-        startAngle_backToStartPointAtEllipse = ev3_gyro_sensor_get_angle(gyro_sensor);
+        arrivalAngle = 181 - (abs(arrivalAngle) - 179);
+    }
 
-        arrivalAngle_backToStartPointAtEllipse = startAngle - inertiaAmount;
+    /*
+    現在地点と復帰地点の角度に応じて、条件式を変更するためのフラグを調整
+    */
+    static bool_t isNeedAngleBuffer = false;
+    static bool_t conditionIsInvert = false;
+    // 到着角度が正負のギリギリ(ex. 179°など)の場合、少し過ぎて負に行っても止まるよう、猶予のフラグを立てる 
+    if (170 < arrivalAngle && !isNeedAngleBuffer)
+    {
+        isNeedAngleBuffer = true;
+    }
+    // スタート位置が既に到着位置より大きい（スタート位置：正 到着位置：負）場合、移動継続の条件式を変えるよう、継続条件変更のフラグを立てる
+    if ((startAngle > arrivalAngle) && !conditionIsInvert)
+    {
+        conditionIsInvert = true;
+    }
 
-        if (arrivalAngle_backToStartPointAtEllipse < -179)
+    /*
+    復帰地点角度まで車輪を動かす
+    */ 
+    static bool_t arrive = false;
+    if(!arrive){
+        // 到着角度になるまで車輪を動かす
+        if (arrivalAngle > angle && !conditionIsInvert)
         {
-            arrivalAngle_backToStartPointAtEllipse = 181 - (abs(arrivalAngle_backToStartPointAtEllipse) - 179);
+            printf("【楕円での撮影タスク：帰り】移動中・・・\n");
+            // 170~180のものは、負になった時点で動作を止める
+            if (isNeedAngleBuffer && 0 > angle)
+            {
+                printf("バッファで止める");
+                arrive = true;
+            }
+            ev3_motor_set_power(right_motor, -60);
         }
-        positionValueIsNull_backToStartPointAtEllipse = false;
-        printf("startAngle_backToStartPointAtEllipse : %d\n", startAngle_backToStartPointAtEllipse);
-        printf("arrivalAngle_backToStartPointAtEllipse : %d\n", arrivalAngle_backToStartPointAtEllipse);
-    }
-
-    if (170 < arrivalAngle_backToStartPointAtEllipse && !isNeedAngleBuffer_backToStartPointAtEllipse)
-    {
-        isNeedAngleBuffer_backToStartPointAtEllipse = true;
-    }
-
-    // 境界を乗り越える場合 フラグをtrue
-    if ((startAngle_backToStartPointAtEllipse > 0 && arrivalAngle_backToStartPointAtEllipse < 0) && !overcome_boundaries_backToStartPointAtEllipse)
-    {
-        overcome_boundaries_backToStartPointAtEllipse = true;
-    }
-
-    // 復帰地点まで動かす
-    printf("【楕円での撮影タスク：帰り】撮影位置への移動開始\n");
-    if (arrivalAngle_backToStartPointAtEllipse > angle && !doneTask_backToStartPointAtEllipse && !overcome_boundaries_backToStartPointAtEllipse)
-    {
-        printf("【楕円での撮影タスク：帰り】移動中\n");
-        // 170~180のものは、負になった時点で動作を止める
-        if (isNeedAngleBuffer_backToStartPointAtEllipse && 0 > angle)
+        // 到着角度になるまで車輪を動かす(正→負に動かす場合の条件式)
+        else if (conditionIsInvert && (angle > 0 || arrivalAngle > angle) && !arrive)
         {
-            printf("バッファで止める");
-            doneTask_backToStartPointAtEllipse = true;
+            printf("【楕円での撮影タスク：帰り】移動中・・・\n");
+            ev3_motor_set_power(right_motor, -60);
         }
-        ev3_motor_set_power(right_motor, -60);
-    }
-    else if (overcome_boundaries_backToStartPointAtEllipse && (angle > 0 || arrivalAngle_backToStartPointAtEllipse > angle) && !doneTask_backToStartPointAtEllipse)
-    {
-        printf("【楕円での撮影タスク：帰り】移動中 【乗り越えver】\n");
-        ev3_motor_set_power(right_motor, -60);
-    }
-    else
-    {
-        printf("正常系で止める");
-        doneTask_backToStartPointAtEllipse = true;
+        // 撮影地点に到達した場合
+        else
+        {
+            printf("【楕円での撮影タスク：帰り】元のライン上に到着");
+            arrive = true;
+        }
     }
 
-    if (doneTask_backToStartPointAtEllipse)
+    if (arrive)
     {
         // 動作停止
         is_motor_stop = true;
         ev3_motor_set_power(left_motor, 0);
         ev3_motor_set_power(right_motor, 0);
 
+        // このタスクのフラグをリセット
+        isNeedAngleBuffer = false;
+        conditionIsInvert = false;
+        arrive = false;
+
         // タスク終了フラグ更新
         doBackToStartPointAtEllipse = false;
-        doneTask_backToStartPointAtEllipse = false;
-
-        // pidパラメータリセット
-        initialize_pid_value();
 
         // タスク終了したのでライントレースを再開
         *pointer_motor_impals = false;
@@ -898,9 +901,8 @@ bool_t backToStartPointAtEllipse(int16_t startAngle, bool_t *pointer_motor_impal
 /* ミニフィグ攻略の実行メソッド */
 bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int moveAngle, int inertiaAmount)
 {
-
-    static bool_t resetFlag;
-    resetFlag = false;
+    // ミニフィグ撮影完了フラグ
+    static bool_t doneTask = false;
 
     // 動作を停止させる
     ev3_motor_set_power(left_motor, 0);
@@ -908,51 +910,45 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
 
     // 走行体を撮影方向に向ける
     static int16_t startAngle;
-
     if (doTowardsCenterOfEllipse)
     {
         startAngle = towardsCenterOfEllipse(pointer_motor_impals, is_motor_stop, moveAngle, inertiaAmount);
     }
 
     // 写真を撮って、パーフェクトショットか判定
-    static bool_t executedPython = false;
-    static int timeCount = 0;
-    if (!minifig_passShotTask && !doTowardsCenterOfEllipse)
+    static bool_t snaped = false;
+    if (!snaped && !doTowardsCenterOfEllipse)
     {
-        minifig_passShotTask = waitMSecond(is_motor_stop, &timeCount, 5);
-        static int minifigSnapNumber = 0;
+        static int timeCount = 0;
+        snaped = waitMSecond(is_motor_stop, &timeCount, 5);
+
+        // 写真撮影のPythonの実行
+        static bool_t executedPython = false;
+        static int minifigSnapNumber = 0; // n回目のミニフィグ撮影 かを管理
         if (!executedPython)
         {
-            printf("撮影実行\n");
+            printf("ミニフィグ撮影実行【%d回目】\n", minifigSnapNumber);
             executedPython = makeMinifigFile(minifigSnapNumber);
             minifigSnapNumber++;
         }
     }
 
-    // 画像送信
-
     // 元の位置に戻す
-    if (doBackToStartPointAtEllipse && !doTowardsCenterOfEllipse && minifig_passShotTask)
+    if (doBackToStartPointAtEllipse && !doTowardsCenterOfEllipse && snaped)
     {
-        resetFlag = backToStartPointAtEllipse(startAngle, pointer_motor_impals, is_motor_stop, inertiaAmount);
+        doneTask = backToStartPointAtEllipse(startAngle, pointer_motor_impals, is_motor_stop, inertiaAmount);
     }
 
-    // このタスクのフラグをすべてリセット
-    if (resetFlag)
+    if (doneTask)
     {
+        // 次回のミニフィグ撮影用に、このタスクのフラグをすべてリセット
         doTowardsCenterOfEllipse = true;
         doBackToStartPointAtEllipse = true;
-        positionValueIsNull_towardsCenterOfEllipse = true;
-        isNeedAngleBuffer_towardsCenterOfEllipse = false;
-        doneTask_towardsCenterOfEllipse = false;
-        positionValueIsNull_backToStartPointAtEllipse = true;
-        isNeedAngleBuffer_backToStartPointAtEllipse = false;
-        doneTask_backToStartPointAtEllipse = false;
-        minifig_passShotTask = false;
-        overcome_boundaries_towardsCenterOfEllipse = false;
-        overcome_boundaries_backToStartPointAtEllipse = false;
+        snaped = false;
         timeCount = 0;
         executedPython = false;
+
+        doneTask = false;
         return true;
     }
 }
