@@ -917,13 +917,13 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
 
     // 写真を撮って、パーフェクトショットか判定
     static bool_t snaped = false;
+    static int timeCount = 0;
+    static bool_t executedPython = false;
     if (!snaped && !doTowardsCenterOfEllipse)
     {
-        static int timeCount = 0;
         snaped = waitMSecond(is_motor_stop, &timeCount, 5);
 
         // 写真撮影のPythonの実行
-        static bool_t executedPython = false;
         static int minifigSnapNumber = 0; // n回目のミニフィグ撮影 かを管理
         if (!executedPython)
         {
