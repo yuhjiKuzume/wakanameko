@@ -660,7 +660,7 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
 bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_motor_stop, int moveAngle, int inertiaAmount)
 {
     // プラレール・風景撮影完了フラグ
-    static bool_t doneTask = false
+    static bool_t doneTask = false;
 
     // 動作を停止させる
     ev3_motor_set_power(left_motor, 0);
