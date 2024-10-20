@@ -9,9 +9,14 @@ import cv2
 import numpy
 import datetime
 import time
+from picamera2 import Picamera2
 
 # カメラを初期化
-cap = cv2.VideoCapture(0)
+cam = Picamera2()
+mode = cam.sensor_modes[3] 
+config = cam.create_preview_configuration({"size":(1640,1232)}) 
+cam.configure(config)
+cam.start()
 
 
 # シリアルポートの設定
@@ -86,10 +91,9 @@ def main():
 
     while True:
         # フレームをキャプチャ
-        ret, frame = cap.read()
-        #if not ret:
-        #    print("カメラからフレームを取得できませんでした")
-        #    break
+        frame = cam.capture_array()
+        frame = cv2.resize(frame,(640,480))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         cv2.imshow('mergeImg', frame)
 
         key = cv2.waitKey(1)
@@ -103,14 +107,11 @@ def main():
         if key == ord('q'):
             break
 
-        if key == ord('t'):
-            cap.set(cv2.CAP_PROP_SETTINGS,1)
-            break
-
-
     # カメラとウィンドウを解放
-    cap.release()
+   
     cv2.destroyAllWindows()
+    cam.close()
+
 
 if __name__ == "__main__":
     main()
