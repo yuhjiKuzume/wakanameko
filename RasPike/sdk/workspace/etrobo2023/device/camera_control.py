@@ -1,5 +1,5 @@
 import cv2
-import numpy
+import numpy as np
 import threading
 import datetime
 
@@ -17,15 +17,16 @@ def init_camera():
     config = camera_handle.create_preview_configuration({"size":(1640,1232)}) 
     camera_handle.configure(config)
     camera_handle.start()
+    return camera_handle
 
 def close_camera():
     global camera_handle
     camera_handle.close()
     cv2.destroyAllWindows()
 
-def read_from_camera():
-    # フレームをキャプチャ
-    global camera_handle, camera_frame
+if __name__ == "__main__":
+    cam_handle = init_camera()
+
     try:
         while True:
             camera_frame = camera_handle.capture_array()
@@ -49,18 +50,3 @@ def read_from_camera():
         print("プログラムを終了します")
     finally:
         close_camera()
-
-def get_camera():
-    global camera_frame
-    return camera_frame
-
-
-
-
-# 受信スレッド開始
-def start_thread():
-    init_camera()
-    thread = threading.Thread(target=read_from_camera)
-    thread.daemon = True
-    thread.start()
-    return thread

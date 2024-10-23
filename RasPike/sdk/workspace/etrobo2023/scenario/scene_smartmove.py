@@ -1,2 +1,2 @@
-def start():
+def start(camera_handle):
     return True

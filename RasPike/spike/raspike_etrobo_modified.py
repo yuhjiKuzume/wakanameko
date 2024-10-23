@@ -196,6 +196,10 @@ def getYou():
     spike_you = hub.motion.yaw_pitch_roll()[0]
     print(spike_you)
 
+def getRGB():
+    color_val = color_sensor.get()
+
+
 def detect_com_fail():
     hub.display.show(hub.Image.SAD,delay=400,clear=True,wait=False,loop=False,fade=0)
     hub.led(9)
