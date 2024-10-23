@@ -78,6 +78,24 @@ spike_you = 0
 # モーターペア化
 motor_pair = motor_B.pair(motor_C)
 
+def wait_motor_stop():
+    while True:
+        before_b = motor_rot_B.get()[0]
+        before_c = motor_rot_C.get()[0]
+        time.sleep(0.1)
+        after_b = motor_rot_B.get()[0]
+        after_c = motor_rot_C.get()[0]
+        # print(str(before_b)+","+str(after_b)+","+str(before_c)+","+str(after_c))
+        if before_b != 0 and after_b != 0 and before_c != 0 and after_c != 0:
+            if before_b == after_b and before_c == after_c:
+                break
+
+def WMS():
+    wait_motor_stop()
+    print("True")
+ 
+
+
 # 走行体右回転（CW方向）
 def CW(deg,RPwr=50,LPwr=50):
     global spike_you
@@ -90,6 +108,8 @@ def CW(deg,RPwr=50,LPwr=50):
         if(spike_you>=deg):
             motor_pair.pwm(0,0)
             break
+    wait_motor_stop()
+    print("True")
 
 # 走行体左回転（CCW方向）
 def CCW(deg,RPwr=50,LPwr=50):
@@ -103,6 +123,8 @@ def CCW(deg,RPwr=50,LPwr=50):
         if(spike_you<=-deg):
             motor_pair.pwm(0,0)
             break
+    wait_motor_stop()
+    print("True")
 
 # 走行体前進
 def FW(cm,RPwr=50,LPwr=50):
@@ -111,6 +133,8 @@ def FW(cm,RPwr=50,LPwr=50):
     degree = cm/(2*pi*r)*360
     motor_pair.preset(0,0)
     motor_pair.run_to_position(degree,-degree)
+    wait_motor_stop()
+    print("True")
 
 def FWA(cm,RPwr=50,LPwr=50):
     pi = 3.14
@@ -142,8 +166,10 @@ def FWA(cm,RPwr=50,LPwr=50):
             lpwr = LPwr*0.6
         elif(-posC/target_pos>0.5):
             lpwr = LPwr*0.8
-        print("target="+str(target_pos)+"("+str(posB)+","+str(rpwr)+")("+str(posC)+","+str(lpwr)+")")
+        # print("target="+str(target_pos)+"("+str(posB)+","+str(rpwr)+")("+str(posC)+","+str(lpwr)+")")
     motor_pair.pwm(0,0)
+    wait_motor_stop()
+    print("True")
 
 # 走行体交代
 def BW(cm,RPwr=50,LPwr=50):
@@ -152,6 +178,8 @@ def BW(cm,RPwr=50,LPwr=50):
     degree = cm/(2*pi*r)*360
     motor_pair.preset(0,0)
     motor_pair.run_to_position(-degree,degree)
+    wait_motor_stop()
+    print("True")
 
 def getRot():
     pi = 3.14
