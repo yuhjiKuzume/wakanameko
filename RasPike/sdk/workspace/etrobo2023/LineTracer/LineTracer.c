@@ -54,19 +54,20 @@ void tracer_task(intptr_t unused)
     /*
     ２つめのカーブに到達
     */
-    static bool_t reachSecondCurve = false;
-    if ((abs(angle) > 170) && !reachSecondCurve)
-    {
-        timeAtLapPoint = time;
-        reachSecondCurve = true;
-        dynamic_base_speed = 45;
-    }
+    // static bool_t reachSecondCurve = false;
+    // if ((abs(angle) > 170) && !reachSecondCurve)
+    // {
+    //     timeAtLapPoint = time;
+    //     reachSecondCurve = true;
+    //     dynamic_base_speed = 45;
+    // }
 
     /*
     LAP付近にきたら、右側トレースに切り替える
     */
     static bool_t passLap = false;
-    if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
+    // if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
+    if (!passLap) // ダブルループ実験用
     {
         printf("------------------------------------Lap手前に到達------------------------------------\n");
 
@@ -102,7 +103,7 @@ void tracer_task(intptr_t unused)
     /*
     プラレール・風景攻略
     */
-    static int16_t takeVideoAngle = 110; // ここを変更
+    static int16_t takeVideoAngle = 70; // 110 // ここを変更
     static bool_t passPerfectCercle = false;
 
     if (enteringDoubleLoop && !passPerfectCercle)
@@ -136,7 +137,7 @@ void tracer_task(intptr_t unused)
                 // ビデオ撮影箇所が正円後半の場合
                 else
                 {
-                    if (angle >= 180)
+                    if (angle == -179)
                     {
                         passHarf = true;
                         printf("passHarf");
@@ -185,7 +186,6 @@ void tracer_task(intptr_t unused)
                 angle = ev3_gyro_sensor_get_angle(gyro_sensor);
                 is_motor_stop = false;
                 motor_impals = false;
-                target_color = 180;
 
                 resetedValue = true;
             }
@@ -199,7 +199,7 @@ void tracer_task(intptr_t unused)
             printf("2周目");
             // 楕円交差点部分に向けてエッジ切り替え
             static bool_t changedEdge = false;
-            if (angle > 110 && !changedEdge)
+            if (angle > 110 && !changedEdge) // ここを変更
             {
                 printf("【正円部】エッジ切り替え\n");
                 is_motor_stop = false;
@@ -211,37 +211,27 @@ void tracer_task(intptr_t unused)
                 changedEdge = true;
                 printf("time:%d\n", time);
             }
+
+            // 楕円突破に向けて、遅くするタイミング　
+            static bool_t slowDown = false;
+            if (abs(angle) > 174 && !slowDown)
+            {
+                printf("------------------------------------楕円突入のため減速------------------------------------\n");
+                slowDown = true;
+                dynamic_base_speed = 30;
+                target_color = 270;
+            }
             // 交差点を突破
             if (changedEdge && blue_line_count == 1)
             {
-                printf("----------------------------------【楕円突入】まっすぐGo----------------------------------");
+                printf("------------------------------------楕円突入------------------------------------\n");
 
                 // 角度リセット
-                static bool_t is_reset_angle = false;
-                if (!is_reset_angle)
-                {
-                    ev3_gyro_sensor_reset(gyro_sensor);
-                    angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-                    is_reset_angle = true;
-                }
-
-                motor_impals = true;
-                ev3_motor_set_power(left_motor, 20); // 60
-                ev3_motor_set_power(right_motor, 65);
-                if ((time - latest_passed_blue_line_time) > 60)
-                {
-                    passPerfectCercle = true;
-
-                    is_motor_stop = true;
-                    ev3_motor_set_power(left_motor, 0); // 60
-                    ev3_motor_set_power(right_motor, 0);
-
-                    // motor_impals = false;
-                    initialize_pid_value();
-                    dynamic_base_speed = 45;
-                    selected_pid_parameter = 1;
-                    // target_color = 270;
-                }
+                ev3_gyro_sensor_reset(gyro_sensor);
+                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+                passPerfectCercle = true;
+                initialize_pid_value();
+                selected_pid_parameter = 1;
             }
         }
     }
@@ -275,6 +265,10 @@ void tracer_task(intptr_t unused)
         static bool_t arrive = false;
         if (!arrive && angle < -50) // 110°などの場合、angle < 110 && angle > 0 // ここを変更
         {
+            // 速度とベースカラーを戻す
+            dynamic_base_speed = 45;
+            target_color = 180;
+
             // 安定性確保のため機体ストップ
             is_motor_stop = true;
             ev3_motor_set_power(left_motor, 0);
@@ -421,6 +415,8 @@ void tracer_task(intptr_t unused)
             if (doneSixthTask)
             {
                 blue_line_count = 0;
+                dynamic_base_speed = 30;
+                trace_edge = RIGHT_EDGE;
                 target_color = 280;
                 escapeEllipse = true;
             }
@@ -433,29 +429,54 @@ void tracer_task(intptr_t unused)
     static bool_t passEllipse = false;
     if (escapeEllipse && !passEllipse && blue_line_count == 1)
     {
-        printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
-        motor_impals = true;
-        ev3_motor_set_power(left_motor, 50);
-        ev3_motor_set_power(right_motor, 50);
-        if ((time - latest_passed_blue_line_time) > 40)
+        printf("----------------------------------楕円脱出--------------------------------------------------------------------");
+        selected_pid_parameter = 0;
+        initialize_pid_value();
+        passEllipse = true;
+        blue_line_count = 0;
+    }
+
+    /*
+    楕円脱出後 エッジ切り替え
+    */
+    static bool_t chengedEdgeAfterEllipse = false;
+    if (passEllipse && !chengedEdgeAfterEllipse)
+    {
+        if ((time - latest_passed_blue_line_time) > 250)
         {
-            selected_pid_parameter = 0;
-            motor_impals = false;
-            initialize_pid_value();
-            passEllipse = true;
-            blue_line_count = 0;
+            trace_edge = LEFT_EDGE;
+            chengedEdgeAfterEllipse = true;
         }
     }
 
     /*
     ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
     */
-    if (passEllipse && check_Line_color_hsv(1))
+    static bool_t startSmartCarry = false;
+    if (chengedEdgeAfterEllipse && !startSmartCarry)
     {
-        is_motor_stop = true;
-        ev3_motor_set_power(left_motor, 0);
-        ev3_motor_set_power(right_motor, 0);
+        if (blue_line_count == 1)
+        {
+            dynamic_base_speed = 45;
+            if (check_Line_color_hsv(1))
+            {
+                is_motor_stop = true;
+                ev3_motor_set_power(left_motor, 0);
+                ev3_motor_set_power(right_motor, 0);
+
+                static int waitTimer = 0;
+                startSmartCarry = waitMSecond(&is_motor_stop, &waitTimer, 3);
+
+                // リセット
+                blue_line_count = 0;
+                initialize_pid_value();
+                ev3_gyro_sensor_reset(gyro_sensor);
+                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+            }
+        }
     }
+
+    // 新しい奴
 
     /* ステアリング操舵量の計算 */
     if (!is_motor_stop && !motor_impals && !end_of_linetrace)
@@ -681,7 +702,7 @@ bool_t takePhotoOfTrainAndLandscape(bool_t *pointer_motor_impals, bool_t *is_mot
     if (!snaped && !doTowardsCenterOfPerfectCircle)
     {
         static int timeCount = 0;
-        snaped = waitMSecond(is_motor_stop, &timeCount, 10);
+        snaped = waitMSecond(is_motor_stop, &timeCount, 8);
 
         // 動画撮影のPythonの実行
         static bool_t executedPython = false;
@@ -771,14 +792,14 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
         if ((angle > arrivalAngle) && !conditionIsInvert)
         {
             printf("【楕円での撮影タスク：行き】移動中・・・\n");
-            // -170~-179のものは、負になった時点で動作を止める
+            // -170~-179のものは、正になった時点で動作を止める
             if (isNeedAngleBuffer && 0 < angle)
             {
                 arrive = true;
             }
             ev3_motor_set_power(right_motor, 60);
         }
-        // 到着角度になるまで車輪を動かす(正→負に動かす場合の条件式)
+        // 到着角度になるまで車輪を動かす(負→正に動かす場合の条件式)
         else if (conditionIsInvert && (angle < 0 || angle > arrivalAngle))
         {
             printf("【楕円での撮影タスク：行き】移動中・・・\n");
@@ -802,6 +823,7 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
         // このタスクのフラグをリセット
         isNeedAngleBuffer = false;
         conditionIsInvert = false;
+        positionValueIsNull = true;
         arrive = false;
 
         // タスク終了フラグ更新
@@ -825,9 +847,14 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
     現在位置と復帰地点の角度を設定
     */
     static int16_t startAngle;
-    startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+    static bool_t startAngleIsNull = true;
+    if (startAngleIsNull)
+    {
+        startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+        startAngleIsNull = false;
+    }
     // 行きメソッドの開始地点から、復帰角度を逆算
-    arrivalAngle = startAngle - inertiaAmount;
+    arrivalAngle = arrivalAngle - inertiaAmount;
     if (arrivalAngle < -179)
     {
         arrivalAngle = 181 - (abs(arrivalAngle) - 179);
@@ -855,6 +882,8 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
     static bool_t arrive = false;
     if (!arrive)
     {
+        printf("arrivalAngle：%d", arrivalAngle);
+        printf("angle：%d", angle);
         // 到着角度になるまで車輪を動かす
         if (arrivalAngle > angle && !conditionIsInvert)
         {
@@ -868,7 +897,7 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
             ev3_motor_set_power(right_motor, -60);
         }
         // 到着角度になるまで車輪を動かす(正→負に動かす場合の条件式)
-        else if (conditionIsInvert && (angle > 0 || arrivalAngle > angle) && !arrive)
+        else if (conditionIsInvert && (angle > 0 || arrivalAngle > angle))
         {
             printf("【楕円での撮影タスク：帰り】移動中・・・\n");
             ev3_motor_set_power(right_motor, -60);
