@@ -72,8 +72,9 @@ motor_rot_C.mode(2)
 # シリアルポートの設定
 spike_serial_port = port_map["spike_serial_port"]
 
-#spike_ヨー角
-spike_you = 0
+# Start of added Modules -----------------------------------------
+spike_you = 0       #spike_ヨー角
+spike_color = None  #SPIKE RGB
 
 # モーターペア化
 motor_pair = motor_B.pair(motor_C)
@@ -93,9 +94,32 @@ def wait_motor_stop():
 def WMS():
     wait_motor_stop()
     print("True")
- 
 
+# 左右モータ同時駆動
+def MP(RPwr=40,LPwr=40):
+    motor_pair.pwm(RPwr,-LPwr)
 
+# アーム制御
+def ARM_UP():
+    motor_A.run_for_time(300, -100, 100, 1, 1, 1)
+
+def ARM_DOWN():
+    motor_A.run_for_time(300, 100, 100, 1, 1, 1)
+
+def ARM_SHAKE(wait_msec,count):
+    wait_s = 0.001 * wait_msec
+    for i in range(count):
+        motor_A.run_for_time(wait_msec, -100, 100, 1, 1, 1)
+        time.sleep(wait_s)
+        motor_A.run_for_time(wait_msec, 100, 100, 1, 1, 1)
+        time.sleep(wait_s)
+
+def BEEP_ON(frq=1300):
+    hub.sound.beep(frq,20)
+    time.sleep(0.1)
+    hub.sound.beep(frq,20)
+
+#
 # 走行体右回転（CW方向）
 def CW(deg,RPwr=50,LPwr=50):
     global spike_you
@@ -192,13 +216,46 @@ def getRot():
     print("motor_B="+str(motor_rot_B.get())+":"+str(cm_b)+"cm")
     print("motor_C="+str(motor_rot_B.get())+":"+str(cm_c)+"cm")
 
+# ヨー角
+def setYou(you=0):
+    hub.motion.yaw_pitch_roll(you)
+    
 def getYou():
+    global spike_you
     spike_you = hub.motion.yaw_pitch_roll()[0]
     print(spike_you)
 
+# RGBセンサー
+def setRGB():
+    color_sensor.mode(5)
+    
 def getRGB():
-    color_val = color_sensor.get()
+    global spike_color
+    numbers = color_sensor.get()
+    # 4で割った結果を新しいリストに格納
+    spike_color = [num // 4 for num in numbers]
+    print(spike_color)
 
+async def getRGBs(wait_time):
+    global spike_color
+    while True:
+        numbers = color_sensor.get()
+        # 4で割った結果を新しいリストに格納
+        spike_color = [num // 4 for num in numbers]
+        print(spike_color)
+        time.sleep(wait_time)
+
+def logRGB(wait_time=1):
+    uasyncio.run(getRGBs(wait_time))
+
+# Display
+def RICOH():
+    #display.show("RICOH IT SOLUTIONS")
+    display.show("RICOH")
+    image = Image("99909:90909:99909:99009:90909")
+    display.show(image)
+
+# End of added Modules -----------------------------------------
 
 def detect_com_fail():
     hub.display.show(hub.Image.SAD,delay=400,clear=True,wait=False,loop=False,fade=0)

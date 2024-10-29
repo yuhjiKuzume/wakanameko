@@ -16,56 +16,73 @@ USBケーブルを通じてコマンドを送信して制御する。
 # Hub-api
 ## ■アーム制御
 ```python
-motor_A.run_for_time(300, -100, 100, 1, 1, 1)  # 上げる
-motor_A.run_for_time(300, 100, 100, 1, 1, 1)  # 下げる
+ARM_UP()  # 上げる
+ARM_DOWN()  # 下げる
+ARM_SHAKE() # ARMを揺さぶる(150ms,3回)
+ARM_SHAKE(300) # 万歳
 ```
 ## ■モータ制御
-モーターペア化(設定済)
-```python
-motor_pair = motor_B.pair(motor_C)
-```
+
 ポジション初期化
 ```python
 motor_pair.preset(0, 0)
 ```
 移動
 ```python
-#前進、後退、停止
-motor_pair.pwm(40, -40) # POWER= 40　で前進
-motor_pair.pwm(-40, 40) # POWER= 40　で後進
-motor_pair.pwm(0, 0) # 停止
+#前進(停止しない)
+MP(40, 40) # POWER= 40
 
+#後進(停止しない)
+MP(-40, -40) # POWER= 40
 
-#回転
-motor_pair.run_to_position(90, 90) #右90度回転（注意：重量があるのでずれる）
-motor_pair.run_to_position(-90, -90) #左90度回転（注意：重量があるのでずれる）
-
-# 指定位置へ前進移動（注意：重量があるのでずれる）
-motor_pair.run_to_position(720, -720) # 角度指定となっている。 720度なら２回転。タイヤの円周×２進む
 ```
 
-## ■ヨー角制御
+停止
 ```python
-hub.motion.yaw_pitch_roll(0) # ヨー角リセット
-hub.motion.yaw_pitch_roll()[0] # ヨー角取得
+MP(0, 0) # 停止
 ```
+
+
+回転
+```python
+CW(90) #右90度回転（注意：重量があるのでずれる）
+CCW(90) #左90度回転（注意：重量があるのでずれる）
+```
+
+指定位置へ移動（パラメータはcm単位, 注意：重量があるのでずれる）
+```python
+FW(10)  # 前進  
+FWA(10, RPwr, LPwr) # 前進（減速版）
+BW(10)  # 後進　
+BWA(10, RPwr, LPwr) # 後進（減速版）
+```
+
+
+ヨー角制御
+```python
+setYou()  # ヨー角リセット
+setYou(deg)  # ヨー角セット(-179～0～179)
+getYou() # ヨー角の取得
+```
+RGBセンサ
+```python
+setRGB()  # RBG取得モード設定
+getRGB()  # RBG取得（R,G,B,?)
+logRGB()  # １秒間隔にRGB取得(CTRL+Cで中止)
+logRGB(time)  # time秒間隔にRGB取得(CTRL+Cで中止)
+```
+
+
 
 参考：　https://lego.github.io/MINDSTORMS-Robot-Inventor-hub-API/class_motorpair.html
 
 
-# オリジナル
+その他
 ```python
-CW(90) #右90度回転
-CCW(90) #左90度回転
-
-FW(10) #10cm前進（注意：重量があるのでずれる）
-BW(10) #10cm後進（注意：重量があるのでずれる）
-
-FWA(10) #10cm前進
-BWA(10) #10cm後進
-
 getRot() # モータ回転角の取得
-getYou() # ヨー角の取得
+
+RICOH() # RICOH ロゴに変更
+BEEP_ON() #BEEP ON
 
 ```
 
