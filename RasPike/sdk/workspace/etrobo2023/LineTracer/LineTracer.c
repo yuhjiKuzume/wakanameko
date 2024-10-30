@@ -526,7 +526,7 @@ int16_t towardsCenterOfPerfectCircle(bool_t *pointer_motor_impals, bool_t *is_mo
         startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
         // 初期アングルから、到着角度を計算
         arrivalAngle = startAngle + (moveAngle - inertiaAmount);
-        if (arrivalAngle > 180)
+        if (arrivalAngle > 179)
         {
             arrivalAngle = -181 + (abs(arrivalAngle) - 179);
         }
@@ -561,7 +561,7 @@ int16_t towardsCenterOfPerfectCircle(bool_t *pointer_motor_impals, bool_t *is_mo
         if (!conditionIsInvert && (angle < arrivalAngle))
         {
             printf("【正円での撮影タスク：行き】移動中・・・\n");
-            // 170~180のものは、負になった時点で動作を止める
+            // 170~179のものは、負になった時点で動作を止める
             if (isNeedAngleBuffer && 0 > angle)
             {
                 printf("【正円での撮影タスク：行き】撮影位置に到着");
@@ -626,7 +626,7 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
 
     // 行きメソッドの開始地点から、復帰角度を逆算
     arrivalAngle = arrivalAngle + inertiaAmount;
-    if (arrivalAngle > 180)
+    if (arrivalAngle > 179)
     {
         arrivalAngle = -181 + (abs(arrivalAngle) - 179);
     }
@@ -657,7 +657,7 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
         if (arrivalAngle < angle && !conditionIsInvert)
         {
             printf("【正円での撮影タスク：帰り】移動中・・・\n");
-            // -170~-179のものは、正になった時点で動作を止める
+            // -170~-180のものは、正になった時点で動作を止める
             if (isNeedAngleBuffer && 0 < angle)
             {
                 arrive = true;
@@ -777,9 +777,9 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
         startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
         arrivalAngle = startAngle - (moveAngle - inertiaAmount);
 
-        if (arrivalAngle < -179)
+        if (arrivalAngle < -180)
         {
-            arrivalAngle = 181 - (abs(arrivalAngle) - 179);
+            arrivalAngle = 180 - (abs(arrivalAngle) - 180);
         }
         positionValueIsNull = false;
         printf("startAngle : %d\n", startAngle);
@@ -812,7 +812,7 @@ int16_t towardsCenterOfEllipse(bool_t *pointer_motor_impals, bool_t *is_motor_st
         if ((angle > arrivalAngle) && !conditionIsInvert)
         {
             printf("【楕円での撮影タスク：行き】移動中・・・\n");
-            // -170~-179のものは、正になった時点で動作を止める
+            // -170~-180のものは、正になった時点で動作を止める
             if (isNeedAngleBuffer && 0 < angle)
             {
                 arrive = true;
@@ -875,9 +875,9 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
     }
     // 行きメソッドの開始地点から、復帰角度を逆算
     arrivalAngle = arrivalAngle - inertiaAmount;
-    if (arrivalAngle < -179)
+    if (arrivalAngle < -180)
     {
-        arrivalAngle = 181 - (abs(arrivalAngle) - 179);
+        arrivalAngle = 180 - (abs(arrivalAngle) - 180);
     }
 
     /*
@@ -908,7 +908,7 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
         if (arrivalAngle > angle && !conditionIsInvert)
         {
             printf("【楕円での撮影タスク：帰り】移動中・・・\n");
-            // 170~180のものは、負になった時点で動作を止める
+            // 170~179のものは、負になった時点で動作を止める
             if (isNeedAngleBuffer && 0 > angle)
             {
                 printf("バッファで止める");
