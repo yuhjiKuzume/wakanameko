@@ -93,7 +93,7 @@ void tracer_task(intptr_t unused)
     if (blue_line_count == 1 && angle > 30 && !enteringDoubleLoop)
     {
         printf("----------------------------------ダブルループ開始----------------------------------\n");
-        target_color = 180;
+        target_color = 220;
         enteringDoubleLoop = true;
         // 誤検知を考慮して、値をリセット
         blue_line_count = 0;
@@ -103,7 +103,7 @@ void tracer_task(intptr_t unused)
     /*
     プラレール・風景攻略
     */
-    static int16_t takeVideoAngle = 70; // 110 // ここを変更
+    static int16_t takeVideoAngle = -160; // 110 // ここを変更
     static bool_t passPerfectCercle = false;
 
     if (enteringDoubleLoop && !passPerfectCercle)
@@ -133,11 +133,18 @@ void tracer_task(intptr_t unused)
                         ev3_motor_set_power(right_motor, 0);
                         arriveTakeVideoPosition = true;
                     }
+                    if (angle < -170)
+                    {
+                        is_motor_stop = true;
+                        ev3_motor_set_power(left_motor, 0);
+                        ev3_motor_set_power(right_motor, 0);
+                        arriveTakeVideoPosition = true;
+                    }
                 }
                 // ビデオ撮影箇所が正円後半の場合
                 else
                 {
-                    if (angle == -179)
+                    if (!passHarf && angle < -170)
                     {
                         passHarf = true;
                         printf("passHarf");
@@ -176,7 +183,7 @@ void tracer_task(intptr_t unused)
         if (loopedOnce && !resetedValue)
         {
             // 一度静止
-            doneWait = waitMSecond(&is_motor_stop, &waitTimer, 3);
+            doneWait = waitMSecond(&is_motor_stop, &waitTimer, 5);
             // 静止後、値のリセット
             if (doneWait)
             {
@@ -196,6 +203,13 @@ void tracer_task(intptr_t unused)
         */
         if (loopedOnce && resetedValue)
         {
+            static bool_t changeTargetColor = false;
+            if (!changeTargetColor)
+            {
+                target_color = 180;
+                changeTargetColor = true;
+            }
+
             printf("2周目");
             // 楕円交差点部分に向けてエッジ切り替え
             static bool_t changedEdge = false;
@@ -603,7 +617,13 @@ bool_t backToStartPointAtPerfectCircle(int16_t arrivalAngle, bool_t *pointer_mot
     現在位置と復帰地点の角度を設定
     */
     static int16_t startAngle;
-    startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+    static bool_t startAngleIsNull = true;
+    if (startAngleIsNull)
+    {
+        startAngle = ev3_gyro_sensor_get_angle(gyro_sensor);
+        startAngleIsNull = false;
+    }
+
     // 行きメソッドの開始地点から、復帰角度を逆算
     arrivalAngle = arrivalAngle + inertiaAmount;
     if (arrivalAngle > 180)
