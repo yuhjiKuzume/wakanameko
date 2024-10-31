@@ -7,7 +7,7 @@ import device.picture_control as ctl_pic
 import scenario.scene_goal as goal
 import scenario.scene_moveblock as moveblock
 import scenario.scene_smartmove as smartmove
-import scenario.scene_smartmove as smartmove
+import scenario.scene_smartmove_test as smartmove_t
 import scenario.scene_test as test
 
 def main():
@@ -18,10 +18,10 @@ def main():
     cam_handle = ctl_cam.init_camera()
 #    test.start(cam_handle)
 
-#    chase_red.start(cam_handle)
-#    moveblock.start(cam_handle)
-#    smartmove.start(cam_handle)
-#    goal.start(cam_handle)
+    chase_red.start(cam_handle)
+    moveblock.start(cam_handle)
+    smartmove.start(cam_handle)
+    goal.start(cam_handle)
     while True:
         time.sleep(1)
 

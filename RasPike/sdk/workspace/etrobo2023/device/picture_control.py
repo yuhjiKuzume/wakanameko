@@ -19,6 +19,18 @@ def detect_blue_object(frame):
         return x ,y ,w, h
     return None
 
+def detect_all_blue_object(frame):
+    # HSV色空間に変換
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # 青色の範囲を定義
+    lower_blue = np.array([100, 150, 0])
+    upper_blue = np.array([140, 255, 255])
+    # 青色のマスクを作成
+    mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    # 輪郭を検出
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return contours
+
 def detect_red_object(frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     lower_red = np.array([0, 120, 70])
@@ -36,6 +48,20 @@ def detect_red_object(frame):
         x, y, w, h = cv2.boundingRect(largest_contour)
         return x ,y ,w, h
     return None
+
+def detect_all_red_object(frame):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    lower_red = np.array([0, 120, 70])
+    upper_red = np.array([10, 255, 255])
+    mask1 = cv2.inRange(hsv, lower_red, upper_red)
+
+    lower_red = np.array([170, 120, 70])
+    upper_red = np.array([180, 255, 255])
+    mask2 = cv2.inRange(hsv, lower_red, upper_red)
+
+    mask = mask1 + mask2
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return contours
 
 def detect_lines(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -131,7 +157,7 @@ def get_frame_cropped(frame):
 def isHorizontal(rectangle):
     x, y, w, h = rectangle
     # ひらべったい場合はサークル
-    if w > h:
+    if w > h*1.1:
         return True
     else:
         return False
@@ -139,7 +165,44 @@ def isHorizontal(rectangle):
 def isVertical(rectangle):
     x, y, w, h = rectangle
     # 縦長の場合はボトル
-    if w <= h:
+    if w <= h*1.1:
         return True
     else:
         return False
+
+def get_distance(x,y):
+    if y <= 60:
+        return "60"
+    elif y <= 184:
+        return "50"
+    elif y <= 122:
+        return "30"
+    elif y <= 273:
+        return "20"
+    elif y <= 425:
+        return "10"
+    else:
+        return "0"
+    
+def draw_scale(frame):
+    # 走行体の外幅
+    cv2.line(frame, (288,60), (411,60), (0, 255, 0), 2) # 50cm
+    cv2.line(frame, (258,122), (427,122), (0, 255, 0), 2) # 30cm
+    cv2.line(frame, (235,184), (441,184), (0, 255, 0), 2) # 20cm
+    cv2.line(frame, (192,273), (469,273), (0, 255, 0), 2) # 10cm
+    cv2.line(frame, (124,425), (512,425), (0, 255, 0), 2) # 0cm
+
+    cv2.line(frame, (124,425), (288,60), (0, 255, 0), 2) # 左
+    cv2.line(frame, (512,425), (411,60), (0, 255, 0), 2) # 右
+
+    # 走行体のアーム幅
+    cv2.line(frame, (236,421), (331,61), (255,0,0), 2) # 左
+    cv2.line(frame, (396,421), (373,63), (255,0,0), 2) # 右
+
+def draw_center_of_gravity(contour, frame):
+    # 重心を計算
+    M = cv2.moments(contour)
+    if M['m00'] != 0:
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)    

@@ -24,6 +24,12 @@ def close_camera():
     camera_handle.close()
     cv2.destroyAllWindows()
 
+def read(camera_handle):
+    frame = camera_handle.capture_array()
+    frame = cv2.resize(frame,(640,480))
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    return frame
+
 if __name__ == "__main__":
     cam_handle = init_camera()
 

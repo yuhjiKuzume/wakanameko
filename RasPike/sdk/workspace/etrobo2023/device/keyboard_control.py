@@ -39,6 +39,8 @@ def read_from_keyboard():
          
             #print(f"Sent: {text}")
     except KeyboardInterrupt:
+        serial.spike_break()
+        serial.spike_all_stop()
         print("プログラムを終了します")
     finally:
         serial.close()

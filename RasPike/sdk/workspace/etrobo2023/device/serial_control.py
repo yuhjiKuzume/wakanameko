@@ -2,7 +2,7 @@ import serial
 import threading
 import time
 
-SER_DEBUG = True
+SER_DEBUG = False
 ser = None
 
 def init():
@@ -39,7 +39,8 @@ def read_from_serial():
             data = ser.readline().decode('utf-8').strip()
             if data:
                 rec_buff.append(data)
-                print(f"R:{data}")
+                if SER_DEBUG is True:
+                    print(f"R:{data}")
         else:
             continue
 
@@ -57,10 +58,11 @@ def send_wait(str):
     ser.write(b'\r\n')   
     if SER_DEBUG is True:
         print(str)
-    print(rec_buff)
+    #print(rec_buff)
     while True:
         time.sleep(0.1)
-        print(rec_buff)
+        if SER_DEBUG is True:
+            print(rec_buff)
         if 'True' in rec_buff:
             break
 

@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import threading
-import ctypes
 import datetime
 import time
 import device.camera_control as ctl_cam
@@ -27,7 +26,7 @@ class twe(threading.Thread):
         for id, thread in threading._active.items():
             if thread is self:
                 return id
-    
+
     # 強制終了させる関数
     def raise_exception(self):
         thread_id = self.get_id()
@@ -36,10 +35,13 @@ class twe(threading.Thread):
             ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), 0)
             print('Failure in raising exception')
             
+def move_motor1(angle, distance):
+    print(angle+" "+str(distance))
+
 def move_motor(angle, distance):
     print(angle+":"+str(distance))
     base_power = 40
-    pwr = abs(distance//20) 
+    pwr = abs(distance//10) 
     if(angle is "left"):
         ctl_ser.send_wait("CCW("+str(pwr)+")")
     elif (angle is "right"):
@@ -49,11 +51,45 @@ def move_motor(angle, distance):
 
     #print(angle+" "+str(distance))
 
-# ボトルの方向を向く
-def face_red_bottle(camera_handle):
-    print("START-face_red_bottle")
+# クリックした点を保存するリスト
+points = []
+
+# マウスイベント時に作動する関数
+def select_point(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        # 左クリックで選択した点をリストに追加
+        points.append((x, y))
+        print(points)
+    elif event == cv2.EVENT_RBUTTONDOWN and len(points) > 0:
+        # 右クリックでリストから削除
+        points.pop()
+        print(points)
+
+def get_click_num():
+    return len(points)
+
+
+def orient_toward_red_bottle(camera_handle):
     while True:
-        frame = ctl_cam.read(camera_handle)
+        frame = camera_handle.capture_array()
+        frame = cv2.resize(frame,(640,480))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        backup_frame = frame.copy()
+    
+    
+def start(camera_handle):
+    cv2.namedWindow('smart')
+    frame = camera_handle.capture_array()
+    frame = cv2.resize(frame,(640,480))
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    cv2.setMouseCallback('smart', select_point, frame)
+    while True:
+        frame = camera_handle.capture_array()
+        frame = cv2.resize(frame,(640,480))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        backup_frame = frame.copy()
+        cv2.polylines(frame, [np.array(points)], True, (255,0,0), 2)
+        
         contours_red = ctl_pic.detect_all_red_object(frame)
         contour_bottle = None
         contours_big = []
@@ -69,6 +105,10 @@ def face_red_bottle(camera_handle):
                 x, y, w, h = cv2.boundingRect(contour)
                 if ctl_pic.isVertical([x, y, w, h]):
                     contour_bottle = contour
+
+                #cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                #text = "CIRCLE:" if ctl_pic.isHorizontal([x, y, w, h]) else "BOTTLE:"
+                #cv2.putText(frame, text+str(area), (x, y+h+10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
         # ボトルが見つからない場合くっついている
         if contour_bottle is None :
@@ -87,33 +127,28 @@ def face_red_bottle(camera_handle):
             elif object_center > frame_center + 20:
                 move_motor("right", frame_center - object_center)
             else:
-                break
+                move_motor("stop", frame_center - object_center)
             ctl_pic.draw_center_of_gravity(contour_bottle,frame)
         ctl_pic.draw_scale(frame)    
         cv2.imshow('smart', frame)
 
-        cv2.waitKey(1)
+        key = cv2.waitKey(1)
+        if key == ord('q'):
+            break
+        if key == ord('s'):
+            dt_now = datetime.datetime.now()
+            file_name = dt_now.strftime('%Y%m%d_%H%M%S')
+            cv2.imwrite(file_name+".jpg",backup_frame)
+
+        if key == ord('r'):
+            dt_now = datetime.datetime.now()
+            file_name = dt_now.strftime('%Y%m%d_%H%M%S')
+            cv2.imwrite(file_name+".jpg",frame)
+
         time.sleep(0.5)
-
-def read_video(camera_handle):
-    while True:
-        frame = ctl_cam.read(camera_handle)
-        cv2.imshow('smart', frame)
-        cv2.waitKey(1)
         
-def approach_red_bottle(camera_handle):
-    frame = ctl_cam.read(camera_handle)
-    x, y, w, h = ctl_pic.detect_red_object(frame)
-    distance = ctl_pic.get_distance(x,y)
-    #thread = start_thread(camera_handle)
-    ctl_ser.send_wait("FW("+distance+")") 
-    #thread.raise_exception()
-
-#def start_thread(camera_handle):
-#    thread = threading.Thread(target=read_video,args=camera_handle)
-#    thread.daemon = True
-#    thread.start()
-#    return thread    
+        
+    return True
 
 def go_to_circle(camera_handle):
     #x = twe(name = 'Thread A', target=read_video, args=(camera_handle))
@@ -131,12 +166,3 @@ def go_to_circle(camera_handle):
     #ctl_ser.send_wait("FW(90)")
     # thread.raise_exception()
     
-def start(camera_handle):
-    ctl_ser.send("BEEP_ON()")
-
-    cv2.namedWindow('smart')
-    face_red_bottle(camera_handle) # ボトルの方向を向く
-    approach_red_bottle(camera_handle) # ボトルまで近づく
-    go_to_circle(camera_handle)
-        
-    return True

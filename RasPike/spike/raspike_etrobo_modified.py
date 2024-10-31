@@ -99,14 +99,18 @@ def WMS():
 def MP(RPwr=40,LPwr=40):
     motor_pair.pwm(RPwr,-LPwr)
 
+# 左右モータ同時駆動
+def MP_B(RPwr=40,LPwr=40):
+    motor_pair.pwm(RPwr,-LPwr)
+
 # アーム制御
-def ARM_UP():
-    motor_A.run_for_time(300, -100, 100, 1, 1, 1)
+def ARM_UP(wait_msec=300):
+    motor_A.run_for_time(wait_msec, -100, 100, 1, 1, 1)
 
-def ARM_DOWN():
-    motor_A.run_for_time(300, 100, 100, 1, 1, 1)
+def ARM_DOWN(wait_msec=300):
+    motor_A.run_for_time(wait_msec, 100, 100, 1, 1, 1)
 
-def ARM_SHAKE(wait_msec,count):
+def ARM_SHAKE(wait_msec=300,count=2):
     wait_s = 0.001 * wait_msec
     for i in range(count):
         motor_A.run_for_time(wait_msec, -100, 100, 1, 1, 1)
@@ -121,7 +125,7 @@ def BEEP_ON(frq=1300):
 
 #
 # 走行体右回転（CW方向）
-def CW(deg,RPwr=50,LPwr=50):
+def CW(deg,RPwr=50,LPwr=50,is_stop_black=False):
     global spike_you
     spike_you = hub.motion.yaw_pitch_roll(0)
     motor_pair.pwm(-RPwr,-LPwr)
@@ -132,11 +136,21 @@ def CW(deg,RPwr=50,LPwr=50):
         if(spike_you>=deg):
             motor_pair.pwm(0,0)
             break
+        if is_stop_black is True:
+            r,g,b,_ = getRGB()
+            sum_color = (r + g + b)//3
+            print("r,g,b=%d,%d,%d" %(r,g,b))
+            if sum_color < ((WHITE_BRIGHTNESS + BLACK_BRIGHTNESS) // 2):
+                print("sum_color < ((WHITE_BRIGHTNESS + BLACK_BRIGHTNESS) // 2)")
+                #print("Time Over command=%d fail=%d" % (num_command, num_fail))
+                motor_pair.pwm(0,0)
+                break
+
     wait_motor_stop()
     print("True")
 
 # 走行体左回転（CCW方向）
-def CCW(deg,RPwr=50,LPwr=50):
+def CCW(deg,RPwr=50,LPwr=50,is_stop_black=False):
     global spike_you
     spike_you = hub.motion.yaw_pitch_roll(0)
     motor_pair.pwm(RPwr,LPwr)
@@ -147,6 +161,15 @@ def CCW(deg,RPwr=50,LPwr=50):
         if(spike_you<=-deg):
             motor_pair.pwm(0,0)
             break
+        if is_stop_black is True:
+            r,g,b,_ = getRGB()
+            sum_color = (r + g + b)//3
+            print("r,g,b=%d,%d,%d" %(r,g,b))
+            if sum_color < ((WHITE_BRIGHTNESS + BLACK_BRIGHTNESS) // 2):
+                print("sum_color < ((WHITE_BRIGHTNESS + BLACK_BRIGHTNESS) // 2)")
+                motor_pair.pwm(0,0)
+                break
+
     wait_motor_stop()
     print("True")
 
@@ -160,7 +183,165 @@ def FW(cm,RPwr=50,LPwr=50):
     wait_motor_stop()
     print("True")
 
-def FWA(cm,RPwr=50,LPwr=50):
+def convert_rgb_to_hsv(rgb_val):
+    r, g, b, _ = rgb_val
+    #print(f"RGB values print >> R:{r:.2f}  G:{g:.2f}  B:{b:.2f}")
+
+    # RGBのうち、最大・最小を取得
+    max_val = max(r, g, b)
+    min_val = min(r, g, b)
+    delta = max_val - min_val
+
+    # 色相(h)を求める
+    if delta == 0:
+        h = 0.0
+    elif max_val == r:
+        h = 60 * ((g - b) / delta)
+    elif max_val == g:
+        h = 60 * ((b - r) / delta) + 120
+    else:
+        h = 60 * ((r - g) / delta) + 240
+
+    if h < 0:
+        h += 360
+
+    # 彩度(s)を求める
+    if max_val == 0:
+        s = 0.0
+    else:
+        s = (delta / max_val) * 100
+
+    # 明度(v)を求める
+    v = max_val
+
+    return h ,s, v
+
+# 定数の定義
+LINE_TRACER_PERIOD = 1000  # 例として1000を設定
+DELTA_T = LINE_TRACER_PERIOD / 1000.0 / 1000.0  # 処理周期
+
+# グローバル変数の初期化
+integral = 0.0  # 偏差の積分
+diff_before = 0.0  # 1つ前の偏差
+diff_after = 0.0  # 現在の偏差
+
+# PIDパラメータの定義
+KP_SOTO = 0.047
+KI_SOTO = 0.007
+KD_SOTO = 0.017
+
+KP_UTI = 0.043
+KI_UTI = 0.06
+KD_UTI = 0.015
+
+# PIDのクラス定義
+class TargetPID:
+    def __init__(self, KP, KI, KD):
+        self.KP = KP
+        self.KI = KI
+        self.KD = KD
+
+
+# PID制御による操作量の計算
+def steering_amount_pid_calculation(rgb_val, target_color, selected_pid_parameter):
+    global diff_before, diff_after, integral
+
+    # 各色のPID閾値テーブル定義
+    target_pid = [
+        TargetPID(0.07, 0.024, 0.019),  # 直線用PID
+        TargetPID(0.13, 0.035, 0.0055)  # 楕円用PID
+    ]
+
+    r,g,b,_ = rgb_val
+    # RGBの合計値を計算
+    sum_color = r + g + b
+
+    # 目標輝度値とカラーセンサ値の差分を計算
+    diff_before = diff_after
+    diff_after = float(target_color - sum_color)
+    integral += (diff_after + diff_before) / 2.0 * DELTA_T
+
+    p = target_pid[selected_pid_parameter].KP * diff_after
+    i = target_pid[selected_pid_parameter].KI * integral
+    d = (target_pid[selected_pid_parameter].KD * (diff_after - diff_before)) / DELTA_T
+
+    # 操作量を返す
+    return p + i + d
+
+
+WHITE_BRIGHTNESS = 170
+BLACK_BRIGHTNESS = 10
+STEERING_COEF = 0.2
+def steering_amount_pid_calculation_p(rgb_val):
+    target_brightness = (WHITE_BRIGHTNESS + BLACK_BRIGHTNESS) / 2
+    # RGBの合計値を計算
+    r,g,b,_ = rgb_val
+    sum_color = (r + g + b)//3
+    diff_brightness = (target_brightness - sum_color)
+    #ステアリング操舵量を計算
+    steering_amount = (diff_brightness * STEERING_COEF)
+    return steering_amount
+
+
+def motor_drive_control(steering_amount, trace_edge, dynamic_base_speed):
+    # 左右モータ設定パワーの計算
+    left_motor_power = int(dynamic_base_speed + (steering_amount * trace_edge))
+    right_motor_power = int(dynamic_base_speed - (steering_amount * trace_edge))
+
+    # モータパワーが100を超えた場合の調整
+    if left_motor_power > 100 or right_motor_power > 100:
+        print("motor_powerが100超えたので調節")
+        if left_motor_power > right_motor_power:
+            right_motor_power = int(100 * (right_motor_power / left_motor_power))
+            left_motor_power = 100
+        elif left_motor_power < right_motor_power:
+            left_motor_power = int(100 * (left_motor_power / right_motor_power))
+            right_motor_power = 100
+        else:
+            left_motor_power = 100
+            right_motor_power = 100
+
+    # 左右モータ駆動パワーの設定
+    motor_pair.pwm(left_motor_power, -right_motor_power)
+    #print('left_motor_power=%d,right_motor_power=%d' %(left_motor_power,right_motor_power))
+
+# LineTrace
+RIGHT_EDGE = (-1)
+LEFT_EDGE = (1)
+def LT(Pwr=50, blue_color_check = True):
+    setRGB()
+    time.sleep(0.1)
+    while True:
+        amount = steering_amount_pid_calculation_p(getRGB())
+        motor_drive_control(amount,RIGHT_EDGE,Pwr)
+        if blue_color_check is True:
+            r,g,b,_= getRGB()
+            if ((b) > (r+g)):
+                break
+        time.sleep(0.1)
+    motor_pair.pwm(0, 0)
+
+
+    print("True")
+
+def FW_B(Pwr=40):
+    setRGB()
+    time.sleep(0.1)
+    while True:
+        r,g,b,_ = getRGB()
+        sum_color = (r + g + b)//3
+        if sum_color < ((WHITE_BRIGHTNESS + BLACK_BRIGHTNESS) // 2):
+            break
+        motor_pair.pwm(Pwr, -Pwr)
+        time.sleep(0.1)
+    motor_pair.pwm(0, 0)
+    print("True")
+
+def to_goal():
+    FW_B()
+    LT()
+
+def FWA(cm,RPwr=40,LPwr=40):
     pi = 3.14
     r = 5
     rpwr =RPwr
@@ -205,6 +386,41 @@ def BW(cm,RPwr=50,LPwr=50):
     wait_motor_stop()
     print("True")
 
+def BWA(cm,RPwr=40,LPwr=40):
+    pi = 3.14
+    r = 5
+    rpwr =RPwr
+    lpwr =LPwr
+    target_pos = cm/(2*pi*r)*360
+    motor_pair.preset(0,0)
+    while True:
+        time.sleep(0.01)
+        motor_pair.pwm(-rpwr,lpwr)
+        posB = motor_rot_B.get()[0]
+        posC = motor_rot_C.get()[0]
+        if(-posB/target_pos>=1):
+            rpwr = 0
+            break
+        elif(-posB/target_pos>0.7):
+            rpwr = RPwr*0.5
+        elif(-posB/target_pos>0.6):
+            rpwr = RPwr*0.6
+        elif(-posB/target_pos>0.5):
+            rpwr = RPwr*0.8
+        if(posC/target_pos>=1):
+            lpwr = 0
+            break
+        elif(posC/target_pos>0.7):
+            lpwr = LPwr*0.5
+        elif(posC/target_pos>0.6):
+            lpwr = LPwr*0.6
+        elif(posC/target_pos>0.5):
+            lpwr = LPwr*0.8
+        # print("target="+str(target_pos)+"("+str(posB)+","+str(rpwr)+")("+str(posC)+","+str(lpwr)+")")
+    motor_pair.pwm(0,0)
+    wait_motor_stop()
+    print("True")
+
 def getRot():
     pi = 3.14
     r = 5
@@ -219,7 +435,7 @@ def getRot():
 # ヨー角
 def setYou(you=0):
     hub.motion.yaw_pitch_roll(you)
-    
+
 def getYou():
     global spike_you
     spike_you = hub.motion.yaw_pitch_roll()[0]
@@ -228,13 +444,14 @@ def getYou():
 # RGBセンサー
 def setRGB():
     color_sensor.mode(5)
-    
+
 def getRGB():
     global spike_color
     numbers = color_sensor.get()
     # 4で割った結果を新しいリストに格納
     spike_color = [num // 4 for num in numbers]
-    print(spike_color)
+    #print(spike_color)
+    return spike_color
 
 async def getRGBs(wait_time):
     global spike_color
