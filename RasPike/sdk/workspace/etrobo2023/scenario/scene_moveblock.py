@@ -31,9 +31,7 @@ import device.picture_control as ctl_pic
 def start(camera_handle):
     ctl_ser.send("BEEP_ON()")
 
-    frame = camera_handle.capture_array()
-    frame = cv2.resize(frame,(640,480))
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame = ctl_cam.read(camera_handle)
     cv2.imshow('frame', frame)
 
     # ★の所にあるのが、デブリブロックなら移動する

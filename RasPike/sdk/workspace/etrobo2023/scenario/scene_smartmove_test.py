@@ -42,9 +42,9 @@ def move_motor(angle, distance):
     print(angle+":"+str(distance))
     base_power = 40
     pwr = abs(distance//10) 
-    if(angle is "left"):
+    if(angle == "left"):
         ctl_ser.send_wait("CCW("+str(pwr)+")")
-    elif (angle is "right"):
+    elif (angle == "right"):
         ctl_ser.send_wait("CW("+str(pwr)+")")
     else:
         pass #ctl_ser.send_wait("MP(0,0)")

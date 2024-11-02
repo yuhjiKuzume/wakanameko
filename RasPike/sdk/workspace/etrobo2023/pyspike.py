@@ -1,7 +1,8 @@
 import time
-import device.camera_control as ctl_cam
-import device.serial_control as ctl_ser
-import device.keyboard_control as ctl_key
+from device.camera_control import init_camera, close_camera
+from device.serial_control import init_serial
+from device.bluetooth_control import init_bluetooth
+from device.keyboard_control import init_keyboard
 import device.picture_control as ctl_pic
 
 import scenario.scene_goal as goal
@@ -11,21 +12,23 @@ import scenario.scene_smartmove_test as smartmove_t
 import scenario.scene_test as test
 
 def main():
-    ser_thread = ctl_ser.start_thread() # シリアル受信スレッド起動
-    key_thread = ctl_key.start_thread() # キーボード受信スレッド起動
-    ctl_ser.spike_break()
+    # deviceの初期化
+    init_serial()              # シリアルの初期化
+    #init_bluetooth()            # シリアルの初期化
+    init_keyboard()             # キーボードの初期化
+    cam_handle = init_camera()  # カメラの初期化
 
-    cam_handle = ctl_cam.init_camera()
+    # シナリオの実行
 #    test.start(cam_handle)
-
-    chase_red.start(cam_handle)
+#    chase_red.start(cam_handle)
     moveblock.start(cam_handle)
     smartmove.start(cam_handle)
     goal.start(cam_handle)
+    
+    # deviceの終了処理
+    close_camera()
     while True:
         time.sleep(1)
-
-
 
 if __name__ == "__main__":
     main()

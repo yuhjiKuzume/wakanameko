@@ -5,13 +5,31 @@ import time
 SER_DEBUG = False
 ser = None
 
-def init():
+# シリアル通信初期化＆開始
+def init_serial():
+    print("start_serial")
+
+    while True:
+        ret = initialize_port('/dev/ttyACM0')
+        #ret = initialize_port('/dev/USB_SPIKE')
+        print(str(ret))
+
+        if ret is True:
+            spike_break()   # ^C 送信
+            thread = threading.Thread(target=read_from_serial)
+            thread.daemon = True
+            thread.start()
+            return thread
+        else:
+            time.sleep(1)
+
+
+def initialize_port(str):
     global ser
     try:
         # シリアルポートの設定
         ser = serial.Serial(
-            port='/dev/ttyACM0',  # 使用するシリアルポート
-            #port='/dev/USB_SPIKE',  # 使用するシリアルポート
+            port=str,  # 使用するシリアルポート
             baudrate=9600,      # ボーレートの設定
             timeout=1           # タイムアウトの設定
         )
@@ -53,6 +71,8 @@ def send(str):
 
 def send_wait(str):
     global ser
+    ret = True
+
     rec_buff.clear()
     ser.write(str.encode('utf-8'))
     ser.write(b'\r\n')   
@@ -65,7 +85,10 @@ def send_wait(str):
             print(rec_buff)
         if 'True' in rec_buff:
             break
-
+        if 'False' in rec_buff:
+            ret = False
+            break
+    return ret
 
 
 # シリアルハンドラ取得
@@ -78,26 +101,10 @@ def get_serial_buff():
     global rec_buff
     return rec_buff
 
-# 受信スレッド開始
-def start_thread():
-    print("start_thread")
-
-    while True:
-        ret = init()
-        print(str(ret))
-        if ret is True:
-            thread = threading.Thread(target=read_from_serial)
-            thread.daemon = True
-            thread.start()
-            return thread
-        else:
-            time.sleep(1)
-
-
 # -------------
-# SPIKEのプログラムを停止
+# SPIKEの全てのモータを停止
 def spike_all_stop():
-    send("motor_pair.pwm(0,0)")
+    send("stop_all()")
 
 # -------------
 # SPIKEのプログラムを停止

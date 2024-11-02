@@ -43,9 +43,9 @@ def move_motor1(angle, distance):
 def move_motor(angle, distance):
     print(angle+":"+str(distance))
     pwr = abs(distance//10) 
-    if(angle is "left"):
+    if(angle == "left"):
         ctl_ser.send_wait("CCW("+str(pwr)+")")
-    elif (angle is "right"):
+    elif (angle == "right"):
         ctl_ser.send_wait("CW("+str(pwr)+")")
     else:
         pass
@@ -73,9 +73,9 @@ def read_video(camera_handle):
             
 def start(camera_handle):
     ctl_ser.send("BEEP_ON()")
-    #ctl_ser.send("ARM_SHAKE(300,2)")
-    #ctl_ser.send_wait("BWA(15,50,50)")
-    #ctl_ser.send_wait("CCW(115)")
+    ctl_ser.send("ARM_SHAKE(300,2)")
+    ctl_ser.send_wait("BWA(15,50,50)")
+    ctl_ser.send_wait("CCW(115)")
     ctl_ser.send_wait("FW_B(40)")
     ctl_ser.send_wait("CCW(35,50,50,True)")
     #read_video(camera_handle)

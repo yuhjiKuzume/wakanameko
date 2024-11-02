@@ -9,40 +9,13 @@ import device.serial_control as ctl_ser
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
 
-
-# カスタムスレッドクラス
-class twe(threading.Thread):
-    def __init__(self, group=None, target=None, name=None, args=(), kwargs={}):
-        threading.Thread.__init__(self, group=group, target=target, name=name)
-        self.args = args
-        self.kwargs = kwargs
-        return
-    
-    def run(self):
-        self._target(*self.args, **self.kwargs)
-
-    def get_id(self):
-        if hasattr(self, '_thread_id'):
-            return self._thread_id
-        for id, thread in threading._active.items():
-            if thread is self:
-                return id
-    
-    # 強制終了させる関数
-    def raise_exception(self):
-        thread_id = self.get_id()
-        resu = ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), ctypes.py_object(SystemExit))
-        if resu > 1:
-            ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), 0)
-            print('Failure in raising exception')
-            
 def move_motor(angle, distance):
     print(angle+":"+str(distance))
     base_power = 40
-    pwr = abs(distance//20) 
-    if(angle is "left"):
+    pwr = abs(distance//10) 
+    if(angle == "left"):
         ctl_ser.send_wait("CCW("+str(pwr)+")")
-    elif (angle is "right"):
+    elif (angle == "right"):
         ctl_ser.send_wait("CW("+str(pwr)+")")
     else:
         pass #ctl_ser.send_wait("MP(0,0)")
@@ -105,15 +78,15 @@ def approach_red_bottle(camera_handle):
     frame = ctl_cam.read(camera_handle)
     x, y, w, h = ctl_pic.detect_red_object(frame)
     distance = ctl_pic.get_distance(x,y)
-    #thread = start_thread(camera_handle)
+    thread = start_thread(camera_handle)
     ctl_ser.send_wait("FW("+distance+")") 
     #thread.raise_exception()
 
-#def start_thread(camera_handle):
-#    thread = threading.Thread(target=read_video,args=camera_handle)
-#    thread.daemon = True
-#    thread.start()
-#    return thread    
+def start_thread(camera_handle):
+    thread = threading.Thread(target=read_video,args=camera_handle)
+    thread.daemon = True
+    thread.start()
+    return thread    
 
 def go_to_circle(camera_handle):
     #x = twe(name = 'Thread A', target=read_video, args=(camera_handle))
@@ -132,8 +105,6 @@ def go_to_circle(camera_handle):
     # thread.raise_exception()
     
 def start(camera_handle):
-    ctl_ser.send("BEEP_ON()")
-
     cv2.namedWindow('smart')
     face_red_bottle(camera_handle) # ボトルの方向を向く
     approach_red_bottle(camera_handle) # ボトルまで近づく

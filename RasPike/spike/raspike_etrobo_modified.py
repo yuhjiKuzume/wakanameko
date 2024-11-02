@@ -174,12 +174,12 @@ def CCW(deg,RPwr=50,LPwr=50,is_stop_black=False):
     print("True")
 
 # 走行体前進
-def FW(cm,RPwr=50,LPwr=50):
+def FW(cm,speed=50,power=50):
     pi = 3.14
     r = 5
     degree = cm/(2*pi*r)*360
     motor_pair.preset(0,0)
-    motor_pair.run_to_position(degree,-degree)
+    motor_pair.run_to_position(degree,-degree,speed, power,1000,1000,0)
     wait_motor_stop()
     print("True")
 
@@ -377,12 +377,12 @@ def FWA(cm,RPwr=40,LPwr=40):
     print("True")
 
 # 走行体交代
-def BW(cm,RPwr=50,LPwr=50):
+def BW(cm,speed=50,power=50):
     pi = 3.14
     r = 5
     degree = cm/(2*pi*r)*360
     motor_pair.preset(0,0)
-    motor_pair.run_to_position(-degree,degree)
+    motor_pair.run_to_position(degree,-degree,speed, power,1000,1000,0)
     wait_motor_stop()
     print("True")
 
