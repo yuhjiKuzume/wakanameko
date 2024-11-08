@@ -69,6 +69,9 @@ else:
         _, frame = camera_handle.read()
         return frame
 
+def read(camera_handle):
+    return read_camera(camera_handle)
+
 def close_camera(camera_handle):
     camera_handle.release()
     cv2.destroyAllWindows()

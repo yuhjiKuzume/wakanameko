@@ -490,7 +490,18 @@ void tracer_task(intptr_t unused)
         }
     }
 
-    // 新しい奴
+    // スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
+    if (startSmartCarry)
+    {
+        char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
+        FILE *file = fopen(fileName, "w");
+        if (!(file == NULL))
+        {
+            printf("%sの作成に成功", fileName);
+            startSmartCarry = false;
+        }
+        fclose(file);
+    }
 
     /* ステアリング操舵量の計算 */
     if (!is_motor_stop && !motor_impals && !end_of_linetrace)
