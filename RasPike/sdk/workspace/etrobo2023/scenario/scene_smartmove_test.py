@@ -3,6 +3,9 @@ import numpy as np
 import threading
 import datetime
 import time
+
+from device.camera_control import read, show_camera_and_get_key
+
 import device.camera_control as ctl_cam
 import device.serial_control as ctl_ser
 import device.keyboard_control as ctl_key
@@ -130,20 +133,10 @@ def start(camera_handle):
                 move_motor("stop", frame_center - object_center)
             ctl_pic.draw_center_of_gravity(contour_bottle,frame)
         ctl_pic.draw_scale(frame)    
-        cv2.imshow('smart', frame)
+        ret, key = show_camera_and_get_key('smart', frame)
 
-        key = cv2.waitKey(1)
-        if key == ord('q'):
+        if ret == False:
             break
-        if key == ord('s'):
-            dt_now = datetime.datetime.now()
-            file_name = dt_now.strftime('%Y%m%d_%H%M%S')
-            cv2.imwrite(file_name+".jpg",backup_frame)
-
-        if key == ord('r'):
-            dt_now = datetime.datetime.now()
-            file_name = dt_now.strftime('%Y%m%d_%H%M%S')
-            cv2.imwrite(file_name+".jpg",frame)
 
         time.sleep(0.5)
         

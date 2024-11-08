@@ -8,6 +8,7 @@ from multiprocessing import Value, Array, Process
 
 MODULE_TEST = True
 #if MODULE_TEST is not True:
+from device.camera_control import read, show_camera_and_get_key
 import device.camera_control as ctl_cam 
 from device.serial_control import send
 import device.keyboard_control as ctl_key
@@ -42,7 +43,7 @@ def start(camera_handle):
         KEY_CURSOR_UP     = 0x260000
         KEY_CURSOR_RIGHT  = 0x270000
         KEY_CURSOR_DOWN   = 0x280000
-        cv2.imshow("frame",frame)
+        ret, key = show_camera_and_get_key("frame",frame)
         key = cv2.waitKeyEx(1)
         if key != -1:
             print(hex(key))

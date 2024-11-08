@@ -3,8 +3,9 @@ import numpy as np
 import threading
 import datetime
 import time
-import device.camera_control as ctl_cam
-import device.serial_control as ctl_ser
+
+from device.camera_control import read,show_camera_and_get_key  
+from device.serial_control import send,send_wait
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
 
@@ -29,22 +30,22 @@ import device.picture_control as ctl_pic
 #  ●
 
 def start(camera_handle):
-    ctl_ser.send("BEEP_ON()")
+    send("BEEP_ON()")
 
-    frame = ctl_cam.read(camera_handle)
-    cv2.imshow('frame', frame)
+    frame = read(camera_handle)
+    show_camera_and_get_key('frame', frame)
 
     # ★の所にあるのが、デブリブロックなら移動する
     if isDebrisBlock(frame) is True:
-        ctl_ser.send_wait("FW(10)")        # 前進10cm
-        ctl_ser.send_wait("BW(10)")        # バック10cm
+        send_wait("FW(10)")        # 前進10cm
+        send_wait("BW(10)")        # バック10cm
 
-    ctl_ser.send_wait("CW(45)")        # 右45度
-    ctl_ser.send_wait("FW(20,40,40)")  # 前進20cm
-    ctl_ser.send_wait("CCW(45)")       # 左45度
-    ctl_ser.send_wait("FW(90,40,40)")  # 前進90cm
-    ctl_ser.send_wait("CW(90)")        # 右90度
-    ctl_ser.send_wait("FW(90,40,40)")  # 前進90cm
+    send_wait("CW(45)")        # 右45度
+    send_wait("FW(20,40,40)")  # 前進20cm
+    send_wait("CCW(45)")       # 左45度
+    send_wait("FW(90,40,40)")  # 前進90cm
+    send_wait("CW(90)")        # 右90度
+    send_wait("FW(90,40,40)")  # 前進90cm
 
 def isDangerBlock(frame):
 

@@ -2,10 +2,10 @@ import cv2
 import numpy as np
 import threading
 import datetime
-import time
+from time import sleep
 
-import device.camera_control as ctl_cam
-import device.serial_control as ctl_ser
+from device.camera_control import read, show_camera_and_get_key
+from device.serial_control import send
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
 
@@ -13,16 +13,16 @@ def move_motor(str):
     pass
 
 def motor_ctrl():
-    time.sleep(1)
+    sleep(1)
 
 def motor_ctrl_old():
-    ctl_ser.send("motor_pair.pwm(100,-100)")
-    time.sleep(1)
-    ctl_ser.send("motor_pair.pwm(100,-50)")
-    time.sleep(0.2)
-    ctl_ser.send("motor_pair.pwm(100,-100)")
-    time.sleep(1)
-    ctl_ser.send("motor_pair.pwm(0,0)")
+    send("motor_pair.pwm(100,-100)")
+    sleep(1)
+    send("motor_pair.pwm(100,-50)")
+    sleep(1)
+    send("motor_pair.pwm(100,-100)")
+    sleep(1)
+    send("motor_pair.pwm(0,0)")
 
 
 def isBlueCircleObject(rectangle, frame):
@@ -77,12 +77,9 @@ def start(camera_handle):
     thread.start()
 
     while True:
-        frame = camera_handle.capture_array()
-        frame = cv2.resize(frame,(640,480))
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
+        frame = read(camera_handle)
         cropped_frame = ctl_pic.get_frame_cropped(frame)
-        cv2.imshow('cropped', cropped_frame)
+        show_camera_and_get_key('cropped', cropped_frame)
 
         # -------------------------
         # Get Infomation
@@ -129,15 +126,6 @@ def start(camera_handle):
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
             cv2.putText(frame, red_text, (x, y+h+10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-        cv2.imshow('frame', frame)
-
-        key = cv2.waitKey(1)
-        # 's'キーが押されたらsave
-        if key == ord('s'):
-            dt_now = datetime.datetime.now()
-            file_name = dt_now.strftime('%Y%m%d_%H%M%S')
-            cv2.imwrite(file_name+".jpg",frame)
-            
-        # 'q'キーが押されたらループを終了
-        if key == ord('q'):
+        ret, _ = show_camera_and_get_key('frame', frame)
+        if ret is False:
             break

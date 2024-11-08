@@ -4,6 +4,8 @@ import threading
 import datetime
 import platform
 
+CANNOT_SHOW_FRAME = True
+
 # どのデバッグ環境でもモジュールテストできるようにする
 if platform.system() != 'Windows':
     USE_PICAMERA2 = True
@@ -77,6 +79,9 @@ def close_camera(camera_handle):
     cv2.destroyAllWindows()
 
 def show_camera_and_get_key(title, frame):
+    if CANNOT_SHOW_FRAME is True:
+        return True, KEY_ESC
+    
     cv2.imshow(title,frame)
     key = cv2.waitKeyEx(1) # waitKeyだとカーソル押下しても0が返ってくる
     # 's'キーが押されたらsave

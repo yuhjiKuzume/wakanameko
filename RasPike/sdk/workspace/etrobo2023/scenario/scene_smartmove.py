@@ -4,8 +4,9 @@ import threading
 import ctypes
 import datetime
 import time
-import device.camera_control as ctl_cam
-import device.serial_control as ctl_ser
+
+from device.camera_control import read, show_camera_and_get_key
+from device.serial_control import send,send_wait
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
 
@@ -14,11 +15,11 @@ def move_motor(angle, distance):
     base_power = 40
     pwr = abs(distance//10) 
     if(angle == "left"):
-        ctl_ser.send_wait("CCW("+str(pwr)+")")
+        send_wait("CCW("+str(pwr)+")")
     elif (angle == "right"):
-        ctl_ser.send_wait("CW("+str(pwr)+")")
+        send_wait("CW("+str(pwr)+")")
     else:
-        pass #ctl_ser.send_wait("MP(0,0)")
+        pass #send_wait("MP(0,0)")
 
     #print(angle+" "+str(distance))
 
@@ -26,7 +27,7 @@ def move_motor(angle, distance):
 def face_red_bottle(camera_handle):
     print("START-face_red_bottle")
     while True:
-        frame = ctl_cam.read(camera_handle)
+        frame = read(camera_handle)
         contours_red = ctl_pic.detect_all_red_object(frame)
         contour_bottle = None
         contours_big = []
@@ -63,23 +64,21 @@ def face_red_bottle(camera_handle):
                 break
             ctl_pic.draw_center_of_gravity(contour_bottle,frame)
         ctl_pic.draw_scale(frame)    
-        cv2.imshow('smart', frame)
+        show_camera_and_get_key('smart', frame)
 
-        cv2.waitKey(1)
         time.sleep(0.5)
 
 def read_video(camera_handle):
     while True:
-        frame = ctl_cam.read(camera_handle)
-        cv2.imshow('smart', frame)
-        cv2.waitKey(1)
+        frame = read(camera_handle)
+        show_camera_and_get_key('smart', frame)
         
 def approach_red_bottle(camera_handle):
-    frame = ctl_cam.read(camera_handle)
+    frame = read(camera_handle)
     x, y, w, h = ctl_pic.detect_red_object(frame)
     distance = ctl_pic.get_distance(x,y)
     thread = start_thread(camera_handle)
-    ctl_ser.send_wait("FW("+distance+")") 
+    send_wait("FW("+distance+")") 
     #thread.raise_exception()
 
 def start_thread(camera_handle):
@@ -92,16 +91,16 @@ def go_to_circle(camera_handle):
     #x = twe(name = 'Thread A', target=read_video, args=(camera_handle))
     # スレッド開始
     #x.start()
-    ctl_ser.send_wait("CW(90)")     
-    ctl_ser.send_wait("FW(90)")
+    send_wait("CW(90)")     
+    send_wait("FW(90)")
     # raise_exceptionを呼び出すことでスレッドが終了
     #x.raise_exception()
     # 既に終了しているので処理を待機しないはず
     #x.join()
     
     #thread = start_thread(camera_handle)
-    #ctl_ser.send_wait("CW(90)")     
-    #ctl_ser.send_wait("FW(90)")
+    #send_wait("CW(90)")     
+    #send_wait("FW(90)")
     # thread.raise_exception()
     
 def start(camera_handle):

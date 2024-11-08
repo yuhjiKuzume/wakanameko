@@ -4,6 +4,8 @@ import threading
 import datetime
 import time
 
+from device.camera_control import read, show_camera_and_get_key
+
 import device.camera_control as ctl_cam
 import device.serial_control as ctl_ser
 import device.keyboard_control as ctl_key
@@ -82,7 +84,7 @@ def start(camera_handle):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             
         cropped_frame = ctl_pic.get_frame_cropped(frame)
-        cv2.imshow('cropped', cropped_frame)
+        show_camera_and_get_key('cropped', cropped_frame)
 
         # -------------------------
         # Get Infomation
@@ -129,15 +131,6 @@ def start(camera_handle):
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
             cv2.putText(frame, red_text, (x, y+h+10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-        cv2.imshow('frame', frame)
-
-        key = cv2.waitKey(1)
-        # 's'キーが押されたらsave
-        if key == ord('s'):
-            dt_now = datetime.datetime.now()
-            file_name = dt_now.strftime('%Y%m%d_%H%M%S')
-            cv2.imwrite(file_name+".jpg",frame)
-            
-        # 'q'キーが押されたらループを終了
-        if key == ord('q'):
+        ret, _ = show_camera_and_get_key('frame', frame)
+        if ret is False:
             break
