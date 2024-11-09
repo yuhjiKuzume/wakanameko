@@ -7,6 +7,7 @@ import numpy as np
 import threading
 import datetime
 from time import sleep
+import re
 
 from device.camera_control import read, show_camera_and_get_key
 from device.serial_control import send,send_wait,get_serial_buff,clear_serial_buff
@@ -64,4 +65,14 @@ def start(camera_handle):
         sleep(0.5)
         rec = get_serial_buff()
         print(rec)
-        draw_compass(int(rec[1]))
+        for text in rec:
+            if text.startswith("Y:"):
+                draw_compass(int(extract_number(text)))
+        
+def extract_number(text):
+    # 正規表現を使って数字を抽出（マイナスの値も含む）
+    match = re.search(r':(-?\d+)', text)
+    if match:
+        return int(match.group(1))
+    else:
+        return None

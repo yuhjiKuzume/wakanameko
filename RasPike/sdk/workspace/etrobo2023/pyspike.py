@@ -26,15 +26,15 @@ def main():
     init_serial()              # シリアルの初期化
     #init_bluetooth()            # シリアルの初期化
     init_keyboard()             # キーボードの初期化
-#    cam_handle = init_camera()  # カメラの初期化
-    cam_handle = None
-    angle_test.start(cam_handle)
+    cam_handle = init_camera()  # カメラの初期化
+    #cam_handle = None
+#    angle_test.start(cam_handle)
 
 # シナリオの実行
 #    test.start(cam_handle)
 #    chase_red.start(cam_handle)
-    # moveblock.start(cam_handle)
-    # smartmove.start(cam_handle)
+#    moveblock.start(cam_handle)
+    smartmove.start(cam_handle)
     #goal.start(cam_handle)
     
     # deviceの終了処理

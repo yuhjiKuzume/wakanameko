@@ -4,11 +4,13 @@ import threading
 import ctypes
 import datetime
 import time
+from multiprocessing import Value, Array, Process
 
 from device.camera_control import read, show_camera_and_get_key
 from device.serial_control import send,send_wait
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
+from device.motor_control import  motor_control_thread
 
 def move_motor(angle, distance):
     print(angle+":"+str(distance))
@@ -68,45 +70,43 @@ def face_red_bottle(camera_handle):
 
         time.sleep(0.5)
 
-def read_video(camera_handle):
-    while True:
-        frame = read(camera_handle)
-        show_camera_and_get_key('smart', frame)
-        
 def approach_red_bottle(camera_handle):
     frame = read(camera_handle)
     x, y, w, h = ctl_pic.detect_red_object(frame)
     distance = ctl_pic.get_distance(x,y)
-    thread = start_thread(camera_handle)
     send_wait("FW("+distance+")") 
-    #thread.raise_exception()
 
-def start_thread(camera_handle):
-    thread = threading.Thread(target=read_video,args=camera_handle)
-    thread.daemon = True
-    thread.start()
-    return thread    
 
 def go_to_circle(camera_handle):
-    #x = twe(name = 'Thread A', target=read_video, args=(camera_handle))
-    # スレッド開始
-    #x.start()
     send_wait("CW(90)")     
     send_wait("FW(90)")
-    # raise_exceptionを呼び出すことでスレッドが終了
-    #x.raise_exception()
-    # 既に終了しているので処理を待機しないはず
-    #x.join()
-    
-    #thread = start_thread(camera_handle)
-    #send_wait("CW(90)")     
-    #send_wait("FW(90)")
-    # thread.raise_exception()
+
+
+def approach_blue_mark(camera_handle):
+    # 共有メモリを使ってモータコントローラスレッドにデータを送る
+    left_motor = Value('i', 0)
+    right_motor = Value('i', 0)
+    is_exit = Value('i', 0)
+    sleep_time = 0.01
+
+    # モーターコントローラを裏で起動する
+    thread = threading.Thread(target=motor_control_thread, args=(left_motor,right_motor,sleep_time,is_exit))
+    thread.start()
+
+    # カメラを起動し青オブジェクトの位置を確認する。
+    frame = read(camera_handle)
+    x, y, w, h = ctl_pic.detect_blue_object(frame)
+    distance = ctl_pic.get_distance(x,y)
+
+
+
     
 def start(camera_handle):
     cv2.namedWindow('smart')
     face_red_bottle(camera_handle) # ボトルの方向を向く
     approach_red_bottle(camera_handle) # ボトルまで近づく
     go_to_circle(camera_handle)
-        
     return True
+
+
+

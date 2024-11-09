@@ -138,8 +138,7 @@ def start(camera_handle):
         if ret == False:
             break
 
-        time.sleep(0.5)
-        
+        time.sleep(0.5)        
         
     return True
 

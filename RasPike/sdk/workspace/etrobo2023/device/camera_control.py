@@ -47,6 +47,7 @@ KEY_CTRL_Y        = 0x19
 if USE_PICAMERA2 is True:
     def init_camera():
         # カメラを初期化
+        print("picamera-mode")
         camera_handle = Picamera2()
         mode = camera_handle.sensor_modes[3] 
         config = camera_handle.create_preview_configuration({"size":(1640,1232)}) # for V2 camera
@@ -65,6 +66,7 @@ if USE_PICAMERA2 is True:
         cv2.destroyAllWindows()
 else:
     def init_camera():
+        print("opencv-mode")
         if platform.system() == 'Windows':
             camera_handle = cv2.VideoCapture(0,cv2.CAP_DSHOW)
         else:
