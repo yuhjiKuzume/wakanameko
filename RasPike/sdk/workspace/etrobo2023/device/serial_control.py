@@ -2,7 +2,7 @@ import serial
 import threading
 import time
 
-SER_DEBUG = False
+SER_DEBUG = True
 ser = None
 
 # シリアル通信初期化＆開始
@@ -100,6 +100,10 @@ def get_serial_handle():
 def get_serial_buff():
     global rec_buff
     return rec_buff
+
+def clear_serial_buff():
+    global rec_buff
+    rec_buff.clear()
 
 # -------------
 # SPIKEの全てのモータを停止

@@ -13,7 +13,7 @@ import device.camera_control as ctl_cam
 from device.serial_control import send
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
-
+from device.motor_control import  motor_control_thread
 
 
 # このプログラムの開始
