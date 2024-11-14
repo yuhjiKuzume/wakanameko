@@ -371,7 +371,7 @@ void tracer_task_R(intptr_t unused) {}
 //                 blue_line_count = 0;
 //                 dynamic_base_speed = 32;
 //                 trace_edge = LEFT_EDGE;
-//                 target_color = 280;
+//                 target_color = 180;
 //                 escapeEllipse = true;
 //             }
 //         }
@@ -401,6 +401,7 @@ void tracer_task_R(intptr_t unused) {}
 //             trace_edge = RIGHT_EDGE;
 //             chengedEdgeAfterEllipse = true;
 //             dynamic_base_speed = 40;
+//             target_color = 150;
 //         }
 //     }
 
@@ -413,7 +414,7 @@ void tracer_task_R(intptr_t unused) {}
 //         if (blue_line_count == 1)
 //         {
 //             dynamic_base_speed = 45;
-//             if (check_Line_color_hsv(1))
+//             if ((time - latest_passed_blue_line_time) > 400)
 //             {
 //                 is_motor_stop = true;
 //                 ev3_motor_set_power(left_motor, 0);

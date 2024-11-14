@@ -54,20 +54,20 @@ void tracer_task(intptr_t unused)
     /*
     ２つめのカーブに到達
     */
-    // static bool_t reachSecondCurve = false;
-    // if ((abs(angle) > 170) && !reachSecondCurve)
-    // {
-    //     timeAtLapPoint = time;
-    //     reachSecondCurve = true;
-    //     dynamic_base_speed = 45;
-    // }
+    static bool_t reachSecondCurve = false;
+    if ((abs(angle) > 170) && !reachSecondCurve)
+    {
+        timeAtLapPoint = time;
+        reachSecondCurve = true;
+        dynamic_base_speed = 45;
+    }
 
     /*
     LAP付近にきたら、右側トレースに切り替える
     */
     static bool_t passLap = false;
-    // if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
-    if (!passLap) // ダブルループ実験用
+    if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
+    // if (!passLap) // ダブルループ実験用
     {
         printf("------------------------------------Lap手前に到達------------------------------------\n");
 
@@ -374,7 +374,7 @@ void tracer_task(intptr_t unused)
                 blue_line_count = 0;
                 dynamic_base_speed = 32;
                 trace_edge = RIGHT_EDGE;
-                target_color = 280;
+                target_color = 180;
                 escapeEllipse = true;
             }
         }
@@ -404,6 +404,7 @@ void tracer_task(intptr_t unused)
             trace_edge = LEFT_EDGE;
             chengedEdgeAfterEllipse = true;
             dynamic_base_speed = 40;
+            target_color = 150;
         }
     }
 
@@ -416,7 +417,7 @@ void tracer_task(intptr_t unused)
         if (blue_line_count == 1)
         {
             dynamic_base_speed = 45;
-            if (check_Line_color_hsv(1))
+            if ((time - latest_passed_blue_line_time) > 400)
             {
                 is_motor_stop = true;
                 ev3_motor_set_power(left_motor, 0);
