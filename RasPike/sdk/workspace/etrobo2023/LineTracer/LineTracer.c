@@ -105,19 +105,27 @@ void tracer_task(intptr_t unused)
     */
     static int16_t takeVideoAngle = -160; // 110 // ここを変更
     static bool_t passPerfectCercle = false;
-
-    if (enteringDoubleLoop && !passPerfectCercle)
+    static bool_t takeVideoAtFirst = true;
+    static bool_t doneTakeVideo = false;
+    // 撮影が前半か後半か決定
+    static bool_t setFlag = false;
+    if (!setFlag)
     {
-        static bool_t loopedOnce = false;
-        /*
-        正円１周目
-        */
-        if (!loopedOnce)
+        if (takeVideoAngle < 0 && takeVideoAngle > -170)
         {
-            printf("1周目");
+            takeVideoAtFirst = false;
+            // 後半部分の時の、takeVideoAngleの計算
+            takeVideoAngle = abs(takeVideoAngle) - 160;
+        }
+        setFlag = true;
+    }
 
+    // 前半部で撮影する場合
+    if (takeVideoAtFirst)
+    {
+        if (enteringDoubleLoop && !passPerfectCercle)
+        {
             static bool_t arriveTakeVideoPosition = false;
-            static bool_t doneTakeVideo = false;
             static bool_t passHarf = false;
 
             // 撮影位置まで移動
@@ -164,77 +172,34 @@ void tracer_task(intptr_t unused)
                 // 90°曲げる、遠心力を考慮して14°手前で止める
                 doneTakeVideo = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
             }
-            if (doneTakeVideo)
-            {
-                if (angle > -10 && angle < 0)
-                {
-                    printf("-time:%d\n", time);
-                    is_motor_stop = false;
-                    motor_impals = false;
-                    loopedOnce = true;
-                }
-            }
-        }
-
-        // センサーが連続周回で壊れるため、一度静止＋値のリセット
-        static bool_t resetedValue = false;
-        static bool_t doneWait = false;
-        static int waitTimer = 0;
-        if (loopedOnce && !resetedValue)
-        {
-            // 一度静止
-            doneWait = waitMSecond(&is_motor_stop, &waitTimer, 3);
-            // 静止後、値のリセット
-            if (doneWait)
-            {
-                // センサー関係の値全リセット
-                initialize_pid_value();
-                ev3_gyro_sensor_reset(gyro_sensor);
-                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-                is_motor_stop = false;
-                motor_impals = false;
-                dynamic_base_speed = 40;
-
-                resetedValue = true;
-            }
-        }
-
-        /*
-        正円２周目
-        */
-        if (loopedOnce && resetedValue)
-        {
-            static bool_t changeTargetColor = false;
-            if (!changeTargetColor)
-            {
-                target_color = 180;
-                changeTargetColor = true;
-            }
-            printf("2周目");
             // 楕円交差点部分に向けてエッジ切り替え
             static bool_t changedEdge = false;
-            if (angle > 110 && !changedEdge) // ここを変更
+            if (doneTakeVideo)
             {
-                printf("【正円部】エッジ切り替え\n");
-                is_motor_stop = false;
-                motor_impals = false;
-                initialize_pid_value();
-                trace_edge = LEFT_EDGE;
+                if (!changedEdge)
+                {
+                    printf("【正円部】エッジ切り替え\n");
+                    is_motor_stop = false;
+                    motor_impals = false;
+                    initialize_pid_value();
+                    trace_edge = LEFT_EDGE;
 
-                blue_line_count = 0;
-                changedEdge = true;
-                printf("time:%d\n", time);
+                    blue_line_count = 0;
+                    changedEdge = true;
+                    printf("time:%d\n", time);
+                }
+
+                // 楕円突破に向けて、遅くするタイミング　
+                static bool_t slowDown = false;
+                if (angle > 174 && angle < 0 && !slowDown)
+                {
+                    printf("------------------------------------楕円突入のため減速------------------------------------\n");
+                    slowDown = true;
+                    dynamic_base_speed = 32;
+                    target_color = 270;
+                }
             }
 
-            // 楕円突破に向けて、遅くするタイミング　
-            static bool_t slowDown = false;
-            if (abs(angle) > 174 && !slowDown)
-            {
-                printf("------------------------------------楕円突入のため減速------------------------------------\n");
-                slowDown = true;
-                dynamic_base_speed = 32;
-                target_color = 270;
-            }
             // 交差点を突破
             if (changedEdge && blue_line_count == 1)
             {
@@ -249,7 +214,6 @@ void tracer_task(intptr_t unused)
             }
         }
     }
-
     /*
      ミニフィグ撮影
     */
@@ -392,11 +356,45 @@ void tracer_task(intptr_t unused)
         blue_line_count = 0;
     }
 
-    /*
-    楕円脱出後 エッジ切り替え
-    */
-    static bool_t chengedEdgeAfterEllipse = false;
-    if (passEllipse && !chengedEdgeAfterEllipse)
+    // 後半部分で撮影する場合
+    if (!takeVideoAtFirst)
+    {
+        if (passEllipse)
+        {
+            static bool_t arriveTakeVideoPosition = false;
+            static bool_t passHarf = false;
+
+            // 撮影位置まで移動
+            if (!arriveTakeVideoPosition)
+            {
+                if ((time - latest_passed_blue_line_time) > 100)
+                {
+                    if (angle > takeVideoAngle)
+                    { // 機体ストップ
+                        is_motor_stop = true;
+                        ev3_motor_set_power(left_motor, 0);
+                        ev3_motor_set_power(right_motor, 0);
+                        arriveTakeVideoPosition = true;
+                    }
+                }
+            }
+        }
+        // 撮影位置到達後動画撮影
+        if (!doneTakeVideo && arriveTakeVideoPosition)
+        {
+            // 90°曲げる、遠心力を考慮して14°手前で止める
+            doneTakeVideo = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
+        }
+    }
+}
+
+/*
+楕円脱出後 エッジ切り替え
+*/
+static bool_t chengedEdgeAfterEllipse = false;
+if (passEllipse && !chengedEdgeAfterEllipse)
+{
+    if (doneTakeVideo)
     {
         if ((time - latest_passed_blue_line_time) > 300)
         {
@@ -406,56 +404,57 @@ void tracer_task(intptr_t unused)
             target_color = 150;
         }
     }
+}
 
-    /*
-    ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
-    */
-    static bool_t startSmartCarry = false;
-    if (chengedEdgeAfterEllipse && !startSmartCarry)
+/*
+ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
+*/
+static bool_t startSmartCarry = false;
+if (chengedEdgeAfterEllipse && !startSmartCarry)
+{
+    if (blue_line_count == 1)
     {
-        if (blue_line_count == 1)
+        dynamic_base_speed = 45;
+        if ((time - latest_passed_blue_line_time) > 400)
         {
-            dynamic_base_speed = 45;
-            if ((time - latest_passed_blue_line_time) > 400)
-            {
-                is_motor_stop = true;
-                ev3_motor_set_power(left_motor, 0);
-                ev3_motor_set_power(right_motor, 0);
+            is_motor_stop = true;
+            ev3_motor_set_power(left_motor, 0);
+            ev3_motor_set_power(right_motor, 0);
 
-                static int waitTimer = 0;
-                startSmartCarry = waitMSecond(&is_motor_stop, &waitTimer, 3);
+            static int waitTimer = 0;
+            startSmartCarry = waitMSecond(&is_motor_stop, &waitTimer, 3);
 
-                // リセット
-                blue_line_count = 0;
-                initialize_pid_value();
-                ev3_gyro_sensor_reset(gyro_sensor);
-                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-            }
+            // リセット
+            blue_line_count = 0;
+            initialize_pid_value();
+            ev3_gyro_sensor_reset(gyro_sensor);
+            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
         }
     }
+}
 
-    // スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
-    if (startSmartCarry)
+// スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
+if (startSmartCarry)
+{
+    char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
+    FILE *file = fopen(fileName, "w");
+    if (!(file == NULL))
     {
-        char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
-        FILE *file = fopen(fileName, "w");
-        if (!(file == NULL))
-        {
-            printf("%sの作成に成功", fileName);
-            startSmartCarry = false;
-        }
-        fclose(file);
+        printf("%sの作成に成功", fileName);
+        startSmartCarry = false;
     }
+    fclose(file);
+}
 
-    /* ステアリング操舵量の計算 */
-    if (!is_motor_stop && !motor_impals && !end_of_linetrace)
-    {
-        // ここの引数5つ目を、0なら外に強い　1なら内に強い(ベースカラーは270にする)
-        pid_driver(get_colorsensor_value(), target_color, trace_edge, dynamic_base_speed, selected_pid_parameter);
-    }
+/* ステアリング操舵量の計算 */
+if (!is_motor_stop && !motor_impals && !end_of_linetrace)
+{
+    // ここの引数5つ目を、0なら外に強い　1なら内に強い(ベースカラーは270にする)
+    pid_driver(get_colorsensor_value(), target_color, trace_edge, dynamic_base_speed, selected_pid_parameter);
+}
 
-    /* タスク終了 */
-    ext_tsk();
+/* タスク終了 */
+ext_tsk();
 }
 
 //------------------------プラレール・風景攻略用メソッド------------------------//
