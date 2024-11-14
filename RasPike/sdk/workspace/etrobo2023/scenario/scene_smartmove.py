@@ -14,8 +14,8 @@ from device.motor_control import  motor_control_thread
 
 def move_motor(angle, distance):
     print(angle+":"+str(distance))
-    base_power = 40
-    pwr = abs(distance//10) 
+    base_power = 50
+    pwr = abs(distance//20) 
     if(angle == "left"):
         send_wait("CCW("+str(pwr)+")")
     elif (angle == "right"):
@@ -71,15 +71,18 @@ def face_red_bottle(camera_handle):
         time.sleep(0.5)
 
 def approach_red_bottle(camera_handle):
-    frame = read(camera_handle)
-    x, y, w, h = ctl_pic.detect_red_object(frame)
-    distance = ctl_pic.get_distance(x,y)
-    send_wait("FW("+distance+")") 
+    send_wait("FW(60,100,100)")
+
+
+    # frame = read(camera_handle)
+    # x, y, w, h = ctl_pic.detect_red_object(frame)
+    # distance = ctl_pic.get_distance(x,y)
+    # send_wait("FW("+str(distance)+",100,100)") 
 
 
 def go_to_circle(camera_handle):
-    send_wait("CW(90)")     
-    send_wait("FW(90)")
+    send_wait("CW(75,50,70)")     
+    send_wait("FW(80,90,90)")
 
 
 def approach_blue_mark(camera_handle):
@@ -93,15 +96,22 @@ def approach_blue_mark(camera_handle):
     thread = threading.Thread(target=motor_control_thread, args=(left_motor,right_motor,sleep_time,is_exit))
     thread.start()
 
-    # カメラを起動し青オブジェクトの位置を確認する。
-    frame = read(camera_handle)
-    x, y, w, h = ctl_pic.detect_blue_object(frame)
-    distance = ctl_pic.get_distance(x,y)
+    while True:
+        # カメラを起動し青オブジェクトの位置を確認する。
+        frame = read(camera_handle)
+        ret =  ctl_pic.detect_blue_object(frame)
+        if ret is not None:
+            x, y, w, h = ret
+            distance = ctl_pic.get_distance(x,y)
+            if distance < 10:
+                break
 
-
+    is_exit.value = -1 # モータ制御を止める
+    send_wait("MP(0,0)")
 
     
 def start(camera_handle):
+    send("BEEP_ON()")
     cv2.namedWindow('smart')
     face_red_bottle(camera_handle) # ボトルの方向を向く
     approach_red_bottle(camera_handle) # ボトルまで近づく

@@ -2,7 +2,7 @@ import serial
 import threading
 import time
 
-SER_DEBUG = False
+SER_DEBUG = True
 ser = None
 
 # シリアル通信初期化＆開始
@@ -73,6 +73,8 @@ def send(str):
 def send_wait(str):
     global ser
     ret = True
+    #if SER_DEBUG is True:
+    print(str)
     if ser is not None:
         rec_buff.clear()
         ser.write(str.encode('utf-8'))

@@ -31,24 +31,65 @@ import device.picture_control as ctl_pic
 
 def start(camera_handle):
     send("BEEP_ON()")
-
     frame = read(camera_handle)
     show_camera_and_get_key('frame', frame)
 
     # ★の所にあるのが、デブリブロックなら移動する
     if isDebrisBlock(frame) is True:
-        send_wait("FW(10)")        # 前進10cm
-        send_wait("BW(10)")        # バック10cm
+        print("isDebrisBlock is True")
+        send_wait("FW(10,60,60)")        # 前進10cm
+        send_wait("BW(10,60,60)")        # バック10cm
 
-    send_wait("CW(45)")        # 右45度
-    send_wait("FW(20,40,40)")  # 前進20cm
-    send_wait("CCW(45)")       # 左45度
+    send_wait("CW(40)")        # 右45度
+    send_wait("FW(20,60,60)")  # 前進20cm
+    send_wait("CCW(40)")       # 左45度
     correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-    send_wait("FW(90,40,40)")  # 前進90cm
+    send_wait("FW(90,60,60)")  # 前進90cm
     send_wait("CW(90)")        # 右90度
     correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-    send_wait("FW(90,40,40)")  # 前進90cm
+    send_wait("FW(90,60,60)")  # 前進90cm
 
+    # thread = threading.Thread(target=turn_and_face_1)
+    # print("A")
+    # wait_motor_sequence(thread,camera_handle)
+    # print("B")
+    # correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
+
+    # thread = threading.Thread(target=turn_and_face_2)
+    # print("C")
+    # wait_motor_sequence(thread,camera_handle)
+    # print("D")
+    # correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
+
+    # thread = threading.Thread(target=turn_and_face_3)
+    # print("E")
+    # wait_motor_sequence(thread,camera_handle)
+    # print("F")
+    # correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
+    
+ 
+def wait_motor_sequence(thread, camera_handle):
+    thread.start()
+    # モータ制御が終わるまでカメラは読み捨て
+    while thread.is_alive():
+        image = read(camera_handle)
+        show_camera_and_get_key('smart', image)
+        time.sleep(1)    
+
+def turn_and_face_1():
+    send_wait("CW(45,40,40)")        # 右45度
+    send_wait("FW(20,60,60)")  # 前進20cm
+    send_wait("CCW(45,40,40)")       # 左45度
+    
+
+def turn_and_face_2():
+    send_wait("FW(90,40,40)")  # 前進90cm
+    send_wait("CW(80,60,60)")        # 右90度
+
+def turn_and_face_3():
+    send_wait("FW(90,60,60)")  # 前進90cm
+    
+    
 def isDangerBlock(frame):
 
     # 赤オブジェクトの検出

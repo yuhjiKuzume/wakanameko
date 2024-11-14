@@ -82,8 +82,6 @@ def start(camera_handle):
         frame = camera_handle.capture_array()
         frame = cv2.resize(frame,(640,480))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        
-        result_reds = ctl_pic.detect_all_red_object(frame)
             
         cropped_frame = ctl_pic.get_frame_cropped(frame)
         show_camera_and_get_key('cropped', cropped_frame)

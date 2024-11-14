@@ -76,15 +76,10 @@ def read_video(camera_handle):
 def turn_and_go_to_line():
     send("BEEP_ON()")
     send("ARM_SHAKE(300,2)")
-    send_wait("BW(15,50,50)")
-    time.sleep(5)
-    print("BW(15,50,50)")
-    send_wait("CCW(115)")
-    print("CCW(115)")
-    send_wait("FW_B(40)")
-    print("FW_B(40)")
-    send_wait("CCW(35,50,50,True)")
-    print("CCW(35,50,50,True)")
+    send_wait("BW(15,60,60)")
+    send_wait("CCW(115,60,60)")
+    send_wait("FW_B(50)")
+    send_wait("CCW(35,60,60,True)")
 
 
 # 固定モーター制御(スレッド)
@@ -95,7 +90,7 @@ def approach_blue_line(camera_handle):
     frame = read(camera_handle)
     x, y, w, h = ctl_pic.detect_blue_object(frame)
     distance = ctl_pic.get_distance(x,y)
-    send_wait("FW("+distance+")") 
+    send_wait("FW("+str(distance)+")") 
     #thread.raise_exception()
 
 def wait_motor_sequence(thread, camera_handle):

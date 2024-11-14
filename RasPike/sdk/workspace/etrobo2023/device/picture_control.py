@@ -157,7 +157,7 @@ def get_frame_cropped(frame):
 def isHorizontal(rectangle):
     x, y, w, h = rectangle
     # ひらべったい場合はサークル
-    if w > h*1.1:
+    if w > h*1.2:
         return True
     else:
         return False
@@ -165,24 +165,24 @@ def isHorizontal(rectangle):
 def isVertical(rectangle):
     x, y, w, h = rectangle
     # 縦長の場合はボトル
-    if w <= h*1.1:
+    if w <= h*1.2:
         return True
     else:
         return False
 
 def get_distance(x,y):
     if y <= 60:
-        return "60"
+        return 60
     elif y <= 184:
-        return "50"
+        return 50
     elif y <= 122:
-        return "30"
+        return 30
     elif y <= 273:
-        return "20"
+        return 20
     elif y <= 425:
-        return "10"
+        return 10
     else:
-        return "0"
+        return 0
     
 def draw_scale(frame):
     # 走行体の外幅
