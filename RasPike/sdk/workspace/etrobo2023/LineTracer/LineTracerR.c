@@ -67,6 +67,7 @@ void tracer_task_R(intptr_t unused) {}
 //     */
 //     static bool_t passLap = false;
 //     if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
+//     // if (!passLap) // ダブルループ実験用
 //     {
 //         printf("------------------------------------Lap手前に到達------------------------------------\n");
 
@@ -192,6 +193,7 @@ void tracer_task_R(intptr_t unused) {}
 //                 angle = ev3_gyro_sensor_get_angle(gyro_sensor);
 //                 is_motor_stop = false;
 //                 motor_impals = false;
+//                 dynamic_base_speed = 40;
 
 //                 resetedValue = true;
 //             }
@@ -230,7 +232,7 @@ void tracer_task_R(intptr_t unused) {}
 //             {
 //                 printf("------------------------------------楕円突入のため減速------------------------------------\n");
 //                 slowDown = true;
-//                 dynamic_base_speed = 30;
+//                 dynamic_base_speed = 32;
 //                 target_color = 270;
 //             }
 //             // 交差点を突破
@@ -264,12 +266,6 @@ void tracer_task_R(intptr_t unused) {}
 //     static bool_t doFourthTask = false;
 //     static bool_t doneFourthTask = false;
 
-//     static bool_t doFifthTask = false;
-//     static bool_t doneFifthTask = false;
-
-//     static bool_t doSixthTask = false;
-//     static bool_t doneSixthTask = false;
-
 //     //----------------------1回目：50°---------------------------------------------//
 //     if (doFirstTask && passPerfectCercle)
 //     {
@@ -292,7 +288,7 @@ void tracer_task_R(intptr_t unused) {}
 //         if (arrive && !doneFirstTask)
 //         {
 //             printf("【楕円でのミニフィグ撮影】１回目");
-//             doneFirstTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 70, 12); // ここを変更
+//             doneFirstTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 65, 12); // ここを変更
 //             if (doneFirstTask)
 //             {
 //                 doSecondTask = true;
@@ -300,12 +296,12 @@ void tracer_task_R(intptr_t unused) {}
 //         }
 //     }
 
-//     //----------------------2回目：90°---------------------------------------------//
+//     //----------------------2回目：100°---------------------------------------------//
 //     if (doSecondTask && passPerfectCercle)
 //     {
 //         // 撮影位置まで移動
 //         static bool_t arrive = false;
-//         if (!arrive && angle > 90) // ここを変更
+//         if (!arrive && angle > 100) // ここを変更
 //         {
 //             // 安定性確保のため機体ストップ
 //             is_motor_stop = true;
@@ -318,7 +314,7 @@ void tracer_task_R(intptr_t unused) {}
 //         if (arrive && !doneSecondTask)
 //         {
 //             printf("【楕円でのミニフィグ撮影】２回目");
-//             doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 82, 12); // ここを変更
+//             doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 125, 12); // ここを変更
 //             if (doneSecondTask)
 //             {
 //                 doThirdTask = true;
@@ -326,61 +322,8 @@ void tracer_task_R(intptr_t unused) {}
 //         }
 //     }
 
-//     //----------------------3回目：100°---------------------------------------------//
+//     //----------------------3回目：-130°---------------------------------------------//
 //     if (doThirdTask && passPerfectCercle)
-//     {
-//         // 撮影位置まで移動
-//         static bool_t arrive = false;
-//         if (!arrive && angle > 110) // ここを変更
-//         {
-//             // 安定性確保のため機体ストップ
-//             is_motor_stop = true;
-//             ev3_motor_set_power(left_motor, 0);
-//             ev3_motor_set_power(right_motor, 0);
-//             arrive = true;
-//         }
-
-//         // 撮影位置に到着すると撮影タスク開始
-//         if (arrive && !doneThirdTask)
-//         {
-//             printf("【楕円でのミニフィグ撮影】３回目");
-//             doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 90, 12); // ここを変更
-//             if (doneThirdTask)
-//             {
-//                 doFourthTask = true;
-//             }
-//         }
-//     }
-
-//     //----------------------4回目：130°---------------------------------------------//
-//     if (doFourthTask && passPerfectCercle)
-//     {
-//         // 撮影位置まで移動
-//         static bool_t arrive = false;
-//         if (!arrive && angle > 130) // ここを変更
-//         {
-//             // 安定性確保のため機体ストップ
-//             is_motor_stop = true;
-//             ev3_motor_set_power(left_motor, 0);
-//             ev3_motor_set_power(right_motor, 0);
-//             arrive = true;
-//         }
-
-//         // 撮影位置に到着すると撮影タスク開始
-//         if (arrive && !doneFourthTask)
-//         {
-//             printf("【楕円でのミニフィグ撮影】４回目");
-//             doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 140, 12); // ここを変更
-//             if (doneFourthTask)
-//             {
-//                 doFifthTask = true;
-//             }
-//         }
-//     }
-
-//     //----------------------5回目：-130°---------------------------------------------//
-//     static bool_t escapeEllipse = false;
-//     if (doFifthTask && passPerfectCercle)
 //     {
 //         // 撮影位置まで移動
 //         static bool_t arrive = false;
@@ -394,23 +337,24 @@ void tracer_task_R(intptr_t unused) {}
 //         }
 
 //         // 撮影位置に到着すると撮影タスク開始
-//         if (arrive && !doneFifthTask)
+//         if (arrive && !doneThirdTask)
 //         {
-//             printf("【楕円でのミニフィグ撮影】５回目");
-//             doneFifthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 60, 12); // ここを変更
-//             if (doneFifthTask)
+//             printf("【楕円でのミニフィグ撮影】３回目");
+//             doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 70, 12); // ここを変更
+//             if (doneThirdTask)
 //             {
-//                 doSixthTask = true;
+//                 doFourthTask = true;
 //             }
 //         }
 //     }
 
-//     //----------------------6回目：-90°---------------------------------------------//
-//     if (doSixthTask && passPerfectCercle)
+//     //----------------------4回目：-85°---------------------------------------------//
+//     static bool_t escapeEllipse = false;
+//     if (doFourthTask && passPerfectCercle)
 //     {
 //         // 撮影位置まで移動
 //         static bool_t arrive = false;
-//         if (!arrive && angle > -90 && angle <= 0) // ここを変更
+//         if (!arrive && angle > -85 && angle <= 0) // ここを変更
 //         {
 //             // 安定性確保のため機体ストップ
 //             is_motor_stop = true;
@@ -420,16 +364,16 @@ void tracer_task_R(intptr_t unused) {}
 //         }
 
 //         // 撮影位置に到着すると撮影タスク開始
-//         if (arrive && !doneSixthTask)
+//         if (arrive && !doneFourthTask)
 //         {
-//             printf("【楕円でのミニフィグ撮影】６回目");
-//             doneSixthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 100, 12); // ここを変更
-//             if (doneSixthTask)
+//             printf("【楕円でのミニフィグ撮影】４回目");
+//             doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 120, 12); // ここを変更
+//             if (doneFourthTask)
 //             {
 //                 blue_line_count = 0;
-//                 dynamic_base_speed = 30;
+//                 dynamic_base_speed = 32;
 //                 trace_edge = LEFT_EDGE;
-//                 target_color = 280;
+//                 target_color = 180;
 //                 escapeEllipse = true;
 //             }
 //         }
@@ -454,10 +398,12 @@ void tracer_task_R(intptr_t unused) {}
 //     static bool_t chengedEdgeAfterEllipse = false;
 //     if (passEllipse && !chengedEdgeAfterEllipse)
 //     {
-//         if ((time - latest_passed_blue_line_time) > 250)
+//         if ((time - latest_passed_blue_line_time) > 300)
 //         {
 //             trace_edge = RIGHT_EDGE;
 //             chengedEdgeAfterEllipse = true;
+//             dynamic_base_speed = 40;
+//             target_color = 150;
 //         }
 //     }
 
@@ -470,7 +416,7 @@ void tracer_task_R(intptr_t unused) {}
 //         if (blue_line_count == 1)
 //         {
 //             dynamic_base_speed = 45;
-//             if (check_Line_color_hsv(1))
+//             if ((time - latest_passed_blue_line_time) > 400)
 //             {
 //                 is_motor_stop = true;
 //                 ev3_motor_set_power(left_motor, 0);
@@ -488,7 +434,18 @@ void tracer_task_R(intptr_t unused) {}
 //         }
 //     }
 
-//     // 新しい奴
+//     // スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
+//     if (startSmartCarry)
+//     {
+//         char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
+//         FILE *file = fopen(fileName, "w");
+//         if (!(file == NULL))
+//         {
+//             printf("%sの作成に成功", fileName);
+//             startSmartCarry = false;
+//         }
+//         fclose(file);
+//     }
 
 //     /* ステアリング操舵量の計算 */
 //     if (!is_motor_stop && !motor_impals && !end_of_linetrace)
@@ -720,7 +677,7 @@ void tracer_task_R(intptr_t unused) {}
 //     if (!snaped && !doTowardsCenterOfPerfectCircle)
 //     {
 //         static int timeCount = 0;
-//         snaped = waitMSecond(is_motor_stop, &timeCount, 8);
+//         snaped = waitMSecond(is_motor_stop, &timeCount, 6);
 
 //         // 動画撮影のPythonの実行
 //         static bool_t executedPython = false;
@@ -974,7 +931,7 @@ void tracer_task_R(intptr_t unused) {}
 //     static bool_t executedPython = false;
 //     if (!snaped && !doTowardsCenterOfEllipse)
 //     {
-//         snaped = waitMSecond(is_motor_stop, &timeCount, 5);
+//         snaped = waitMSecond(is_motor_stop, &timeCount, 4);
 
 //         // 写真撮影のPythonの実行
 //         static int minifigSnapNumber = 0; // n回目のミニフィグ撮影 かを管理
