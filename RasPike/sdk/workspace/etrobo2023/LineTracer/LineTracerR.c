@@ -67,6 +67,7 @@ void tracer_task_R(intptr_t unused) {}
 //     */
 //     static bool_t passLap = false;
 //     if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
+//     // if (!passLap) // ダブルループ実験用
 //     {
 //         printf("------------------------------------Lap手前に到達------------------------------------\n");
 
@@ -192,6 +193,7 @@ void tracer_task_R(intptr_t unused) {}
 //                 angle = ev3_gyro_sensor_get_angle(gyro_sensor);
 //                 is_motor_stop = false;
 //                 motor_impals = false;
+//                 dynamic_base_speed = 40;
 
 //                 resetedValue = true;
 //             }
@@ -432,7 +434,18 @@ void tracer_task_R(intptr_t unused) {}
 //         }
 //     }
 
-//     // 新しい奴
+//     // スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
+//     if (startSmartCarry)
+//     {
+//         char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
+//         FILE *file = fopen(fileName, "w");
+//         if (!(file == NULL))
+//         {
+//             printf("%sの作成に成功", fileName);
+//             startSmartCarry = false;
+//         }
+//         fclose(file);
+//     }
 
 //     /* ステアリング操舵量の計算 */
 //     if (!is_motor_stop && !motor_impals && !end_of_linetrace)

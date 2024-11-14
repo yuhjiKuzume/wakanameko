@@ -210,7 +210,6 @@ void tracer_task(intptr_t unused)
                 target_color = 180;
                 changeTargetColor = true;
             }
-
             printf("2周目");
             // 楕円交差点部分に向けてエッジ切り替え
             static bool_t changedEdge = false;
