@@ -359,10 +359,10 @@ void tracer_task(intptr_t unused)
     // 後半部分で撮影する場合
     if (!takeVideoAtFirst)
     {
+
         if (passEllipse)
         {
             static bool_t arriveTakeVideoPosition = false;
-            static bool_t passHarf = false;
 
             // 撮影位置まで移動
             if (!arriveTakeVideoPosition)
@@ -378,83 +378,82 @@ void tracer_task(intptr_t unused)
                     }
                 }
             }
-        }
-        // 撮影位置到達後動画撮影
-        if (!doneTakeVideo && arriveTakeVideoPosition)
-        {
-            // 90°曲げる、遠心力を考慮して14°手前で止める
-            doneTakeVideo = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
+            // 撮影位置到達後動画撮影
+            if (!doneTakeVideo && arriveTakeVideoPosition)
+            {
+                // 90°曲げる、遠心力を考慮して14°手前で止める
+                doneTakeVideo = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
+            }
         }
     }
-}
 
-/*
-楕円脱出後 エッジ切り替え
-*/
-static bool_t chengedEdgeAfterEllipse = false;
-if (passEllipse && !chengedEdgeAfterEllipse)
-{
-    if (doneTakeVideo)
+    /*
+    楕円脱出後 エッジ切り替え
+    */
+    static bool_t chengedEdgeAfterEllipse = false;
+    if (passEllipse && !chengedEdgeAfterEllipse)
     {
-        if ((time - latest_passed_blue_line_time) > 300)
+        if (doneTakeVideo)
         {
-            trace_edge = LEFT_EDGE;
-            chengedEdgeAfterEllipse = true;
-            dynamic_base_speed = 40;
-            target_color = 150;
+            if ((time - latest_passed_blue_line_time) > 300)
+            {
+                trace_edge = LEFT_EDGE;
+                chengedEdgeAfterEllipse = true;
+                dynamic_base_speed = 40;
+                target_color = 150;
+            }
         }
     }
-}
 
-/*
-ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
-*/
-static bool_t startSmartCarry = false;
-if (chengedEdgeAfterEllipse && !startSmartCarry)
-{
-    if (blue_line_count == 1)
+    /*
+    ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる
+    */
+    static bool_t startSmartCarry = false;
+    if (chengedEdgeAfterEllipse && !startSmartCarry)
     {
-        dynamic_base_speed = 45;
-        if ((time - latest_passed_blue_line_time) > 400)
+        if (blue_line_count == 1)
         {
-            is_motor_stop = true;
-            ev3_motor_set_power(left_motor, 0);
-            ev3_motor_set_power(right_motor, 0);
+            dynamic_base_speed = 45;
+            if ((time - latest_passed_blue_line_time) > 400)
+            {
+                is_motor_stop = true;
+                ev3_motor_set_power(left_motor, 0);
+                ev3_motor_set_power(right_motor, 0);
 
-            static int waitTimer = 0;
-            startSmartCarry = waitMSecond(&is_motor_stop, &waitTimer, 3);
+                static int waitTimer = 0;
+                startSmartCarry = waitMSecond(&is_motor_stop, &waitTimer, 3);
 
-            // リセット
-            blue_line_count = 0;
-            initialize_pid_value();
-            ev3_gyro_sensor_reset(gyro_sensor);
-            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+                // リセット
+                blue_line_count = 0;
+                initialize_pid_value();
+                ev3_gyro_sensor_reset(gyro_sensor);
+                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+            }
         }
     }
-}
 
-// スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
-if (startSmartCarry)
-{
-    char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
-    FILE *file = fopen(fileName, "w");
-    if (!(file == NULL))
+    // スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
+    if (startSmartCarry)
     {
-        printf("%sの作成に成功", fileName);
-        startSmartCarry = false;
+        char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
+        FILE *file = fopen(fileName, "w");
+        if (!(file == NULL))
+        {
+            printf("%sの作成に成功", fileName);
+            startSmartCarry = false;
+        }
+        fclose(file);
     }
-    fclose(file);
-}
 
-/* ステアリング操舵量の計算 */
-if (!is_motor_stop && !motor_impals && !end_of_linetrace)
-{
-    // ここの引数5つ目を、0なら外に強い　1なら内に強い(ベースカラーは270にする)
-    pid_driver(get_colorsensor_value(), target_color, trace_edge, dynamic_base_speed, selected_pid_parameter);
-}
+    /* ステアリング操舵量の計算 */
+    if (!is_motor_stop && !motor_impals && !end_of_linetrace)
+    {
+        // ここの引数5つ目を、0なら外に強い　1なら内に強い(ベースカラーは270にする)
+        pid_driver(get_colorsensor_value(), target_color, trace_edge, dynamic_base_speed, selected_pid_parameter);
+    }
 
-/* タスク終了 */
-ext_tsk();
+    /* タスク終了 */
+    ext_tsk();
 }
 
 //------------------------プラレール・風景攻略用メソッド------------------------//
