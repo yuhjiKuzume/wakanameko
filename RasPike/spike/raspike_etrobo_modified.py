@@ -213,6 +213,7 @@ def FW(cm,speed=50,power=50):
     r = 5
     degree = cm/(2*pi*r)*360
     motor_pair.preset(0,0)
+    #motor_pair.run_to_position(degree,-degree)
     motor_pair.run_to_position(degree,-degree,speed, power,1000,1000,0)
     wait_motor_stop()
     print("True")

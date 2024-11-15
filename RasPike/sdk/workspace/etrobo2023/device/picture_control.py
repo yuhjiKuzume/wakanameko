@@ -119,12 +119,193 @@ def draw_circles(frame, circles):
 
 def detect_green_white_boundary(frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower_green = np.array([35, 100, 100])
-    upper_green = np.array([85, 255, 255])
+    # lower_green = np.array([35, 100, 100])
+    # upper_green = np.array([85, 255, 255])
+    lower_green = np.array([40, 40, 40])
+    upper_green = np.array([80, 255, 255])
+
     mask_green = cv2.inRange(hsv, lower_green, upper_green)
     edges = cv2.Canny(mask_green, 50, 150)
     lines = cv2.HoughLines(edges, 1, np.pi / 180, 100)
     return lines
+
+def get_bottom_most_line(lines, frame):
+    # 一番下側の横のラインを保存する変数を初期化
+    bottom_y = 0
+    bottom_line = None
+
+    if lines is not None:
+        for rho, theta in lines[:, 0]:
+            # 線の角度が垂直に近いかどうかを確認
+            #if -0.3 < theta < 0.3 or np.pi - 0.3 < theta < np.pi + 0.3:  # 垂直に近い線の許容範囲を広げる
+            # if -0.1 < theta < 0.1 or np.pi - 0.1 < theta < np.pi + 0.1:  # 垂直に近い線の許容範囲を設定
+                
+            if np.pi / 2 - 0.3 < theta < np.pi / 2 + 0.3:  # 水平に近い線の許容範囲を広げるために閾値を調整
+            # if np.pi / 2 - 0.1 < theta < np.pi / 2 + 0.1:  # 水平に近い線の許容範囲を設定
+                # rhoとthetaを使って線の端点を計算
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                x1 = int(x0 + 1000 * (-b))
+                y1 = int(y0 + 1000 * (a))
+                x2 = int(x0 - 1000 * (-b))
+                y2 = int(y0 - 1000 * (a))
+                
+                # この線が下側にある場合、下端の線を更新
+                if y0 > bottom_y:
+                    bottom_y = y0
+                    bottom_line = (x1, y1, x2, y2)
+                
+    return bottom_line
+
+def get_right_most_line(lines, frame ):
+    # 一番右側の縦のラインを保存する変数を初期化
+    rightmost_x = -1
+    rightmost_line = None
+
+    if lines is not None:
+        for rho, theta in lines[:, 0]:
+            # 線の角度が垂直に近いかどうかを確認
+            if -0.3 < theta < 0.3 or np.pi - 0.3 < theta < np.pi + 0.3:  # 垂直に近い線の許容範囲を広げる
+            # if -0.1 < theta < 0.1 or np.pi - 0.1 < theta < np.pi + 0.1:  # 垂直に近い線の許容範囲を設定
+                
+            # if np.pi / 2 - 0.3 < theta < np.pi / 2 + 0.3:  # 水平に近い線の許容範囲を広げるために閾値を調整
+            # if np.pi / 2 - 0.1 < theta < np.pi / 2 + 0.1:  # 水平に近い線の許容範囲を設定
+                # rhoとthetaを使って線の端点を計算
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                x1 = int(x0 + 1000 * (-b))
+                y1 = int(y0 + 1000 * (a))
+                x2 = int(x0 - 1000 * (-b))
+                y2 = int(y0 - 1000 * (a))
+                
+                # この線が右側にある場合、右端の線を更新
+                if x0 > rightmost_x:
+                    rightmost_x = x0
+                    rightmost_line = (x1, y1, x2, y2)
+                
+    return rightmost_line
+
+def get_and_draw_cross_line_right_bottom(lines, frame):
+    # 一番下のラインを保存する変数を初期化
+    lowest_y = float('inf')
+    lowest_line = None
+
+    # 一番右側の縦のラインを保存する変数を初期化
+    rightmost_x = -1
+    rightmost_line = None
+    
+    # 検出された線を繰り返し処理
+    if lines is not None:
+        for rho, theta in lines[:, 0]:
+            # 線の角度が水平に近いかどうかを確認
+            if np.pi / 2 - 0.3 < theta < np.pi / 2 + 0.3:  # 垂直に近い線の許容範囲を広げる
+                # rhoとthetaを使って線の端点を計算
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                x1 = int(x0 + 1000 * (-b))
+                y1 = int(y0 + 1000 * (a))
+                x2 = int(x0 - 1000 * (-b))
+                y2 = int(y0 - 1000 * (a))
+                
+                # この線が下側にある場合、最下端の線を更新
+                if y0 > lowest_y:
+                    lowest_y = y0
+                    lowest_line = (x1, y1, x2, y2)
+            
+            # 線の角度が垂直に近いかどうかを確認
+            if -0.3 < theta < 0.3 or np.pi - 0.3 < theta < np.pi + 0.3:  # 水平に近い線の許容範囲を広げる
+                # rhoとthetaを使って線の端点を計算
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                x1 = int(x0 + 1000 * (-b))
+                y1 = int(y0 + 1000 * (a))
+                x2 = int(x0 - 1000 * (-b))
+                y2 = int(y0 - 1000 * (a))
+                
+                # この線が右側にある場合、右端の線を更新
+                if x0 > rightmost_x:
+                    rightmost_x = x0
+                    rightmost_line = (x1, y1, x2, y2)
+
+    # 元の画像に一番下のラインと一番右側の縦のラインを描画
+    if lowest_line is not None:
+        x1, y1, x2, y2 = lowest_line
+        cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 3)  # 赤色で描画
+
+    if rightmost_line is not None:
+        x1, y1, x2, y2 = rightmost_line
+        cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 3)  # 青色で描画
+
+    # 一番下のラインと一番右側の縦のラインの交点を計算して黄色で描画
+    if lowest_line is not None and rightmost_line is not None:
+        # 一番下のラインの方程式: y = m1*x + c1
+        m1 = (lowest_line[3] - lowest_line[1]) / (lowest_line[2] - lowest_line[0])
+        c1 = lowest_line[1] - m1 * lowest_line[0]
+        
+        # 一番右側の縦のラインの方程式: x = c2 (垂直なので傾きは無限大)
+        c2 = rightmost_line[0]
+        
+        # 一番下のラインと一番右側の縦のラインの交点: (c2, m1*c2 + c1)
+        intersection_x = int(c2)
+        intersection_y = int(m1 * c2 + c1)
+        
+        # 黄色で交点を描画
+        cv2.circle(frame, (intersection_x, intersection_y), 5, (0, 255, 255), -1)  # 黄色で描画
+
+def find_intersection(line1, line2):
+    x1, y1, x2, y2 = line1
+    x3, y3, x4, y4 = line2
+    
+    # 行列式を計算
+    det = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    
+    if det == 0:
+        return None  # ラインが平行または一致している場合
+    
+    # 交点を計算
+    det_x = (x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)
+    det_y = (x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)
+    
+    x = det_x // det
+    y = det_y // det
+    
+    return x, y
+
+# 使用例
+# line1 = (1, 2, 3, 4)
+# line2 = (5, 6, 7, 8)
+
+# intersection = find_intersection(line1, line2)
+# if intersection:
+#     print(f"交点は: {intersection}")
+# else:
+#     print("ラインは平行または一致しており、交点がありません。")
+
+                
+
+def draw_line(line, frame):
+    if line is not None:
+        x1, y1, x2, y2 = line
+        cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 3)  # 赤色で描画
+    
+
+def get_point(line, y_position):
+    # Y=10の位置に赤い丸を描画
+    x1, y1, x2, y2 = line
+    x_position = int((y_position - y1) * (x2 - x1) / (y2 - y1) + x1)
+    return x_position
+
+def draw_dot(x,y,frame):
+    cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # 赤い丸を描画
+
 
 def draw_green_white_boundary(lines, frame):
     if lines is not None:

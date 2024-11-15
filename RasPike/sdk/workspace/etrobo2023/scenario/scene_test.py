@@ -83,17 +83,22 @@ def start(camera_handle):
         frame = cv2.resize(frame,(640,480))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        result_reds = ctl_pic.detect_all_red_object(frame)
+        contours_red = ctl_pic.detect_all_red_object(frame)
+        contours_big = []
+        for contour in contours_red:
+            # 輪郭の面積を計算する
+            area = cv2.contourArea(contour)
+        
+            # 面積が一定以上の場合にのみ処理を行う
+            if area > 1500:  # 面積の閾値は適宜調整してください
+                contours_big.append(contour)
+
+                # 輪郭を取得
+                x, y, w, h = cv2.boundingRect(contour)
+                if ctl_pic.isVertical([x, y, w, h]):
+                    contour_bottle = contour
+
             
-        cropped_frame = ctl_pic.get_frame_cropped(frame)
-        show_camera_and_get_key('cropped', cropped_frame)
-
-        # -------------------------
-        # Get Infomation
-        #lines = ctl_pic.detect_lines(frame)
-        #green_line = ctl_pic.detece_green_white_boundary(frame)
-
-
         result_red = ctl_pic.detect_red_object(frame)
         if result_red:
             x, y, w, h = result_red

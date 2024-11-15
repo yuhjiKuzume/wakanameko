@@ -115,5 +115,9 @@ def start(camera_handle):
     # # ゴールまで移動
     go_to_goal(camera_handle)
 
+    send("BEEP_ON()")
+    send("ARM_SHAKE(300,2)")
+    send("RICOH()")
+
 
     # # go_to_goal(camera_handle)
