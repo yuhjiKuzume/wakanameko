@@ -54,20 +54,20 @@ void tracer_task(intptr_t unused)
     /*
     ２つめのカーブに到達
     */
-    static bool_t reachSecondCurve = false;
-    if ((abs(angle) > 170) && !reachSecondCurve)
-    {
-        timeAtLapPoint = time;
-        reachSecondCurve = true;
-        dynamic_base_speed = 45;
-    }
+    // static bool_t reachSecondCurve = false;
+    // if ((abs(angle) > 170) && !reachSecondCurve)
+    // {
+    //     timeAtLapPoint = time;
+    //     reachSecondCurve = true;
+    //     dynamic_base_speed = 45;
+    // }
 
     /*
     LAP付近にきたら、右側トレースに切り替える
     */
     static bool_t passLap = false;
-    if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
-    // if (!passLap) // ダブルループ実験用
+    // if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
+    if (!passLap) // ダブルループ実験用
     {
         printf("------------------------------------Lap手前に到達------------------------------------\n");
 
@@ -93,7 +93,7 @@ void tracer_task(intptr_t unused)
     if (blue_line_count == 1 && angle > 30 && !enteringDoubleLoop)
     {
         printf("----------------------------------ダブルループ開始----------------------------------\n");
-        target_color = 220;
+        target_color = 180;
         enteringDoubleLoop = true;
         // 誤検知を考慮して、値をリセット
         blue_line_count = 0;
@@ -103,21 +103,26 @@ void tracer_task(intptr_t unused)
     /*
     プラレール・風景攻略
     */
-    static int16_t takeVideoAngle = -160; // 110 // ここを変更
+    static int16_t takeVideoAngle = -10;    // 110 // ここを変更 // 前半部分を撮影する場合、-160°まで
+    static bool_t takeVideoAtFirst = false; // 前半部分か後半部分を撮影するかを決定　// ここを変更
+
     static bool_t passPerfectCercle = false;
+    static bool_t doneTakeVideo = false;
 
-    if (enteringDoubleLoop && !passPerfectCercle)
+    static bool_t setDoneTakeVideoTime = false;
+    static int doneTakeVideoTime;
+    if (!setDoneTakeVideoTime && doneTakeVideo)
     {
-        static bool_t loopedOnce = false;
-        /*
-        正円１周目
-        */
-        if (!loopedOnce)
-        {
-            printf("1周目");
+        doneTakeVideoTime = time;
+        setDoneTakeVideoTime = true;
+    }
 
+    // 前半部で撮影する場合
+    if (takeVideoAtFirst)
+    {
+        if (enteringDoubleLoop && !passPerfectCercle)
+        {
             static bool_t arriveTakeVideoPosition = false;
-            static bool_t doneTakeVideo = false;
             static bool_t passHarf = false;
 
             // 撮影位置まで移動
@@ -164,53 +169,68 @@ void tracer_task(intptr_t unused)
                 // 90°曲げる、遠心力を考慮して14°手前で止める
                 doneTakeVideo = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
             }
+            // 楕円交差点部分に向けてエッジ切り替え
+            static bool_t changedEdge = false;
             if (doneTakeVideo)
             {
-                if (angle > -10 && angle < 0)
+                if (!changedEdge)
                 {
-                    printf("-time:%d\n", time);
-                    is_motor_stop = false;
+                    if (setDoneTakeVideoTime && (time - doneTakeVideoTime) > 50)
+                    {
+                        printf("【正円部】エッジ切り替え\n");
+                        is_motor_stop = false;
+                        motor_impals = false;
+                        initialize_pid_value();
+                        trace_edge = LEFT_EDGE;
+
+                        blue_line_count = 0;
+                        changedEdge = true;
+                        printf("time:%d\n", time);
+                    }
+                }
+
+                // 楕円突破に向けて、遅くするタイミング　
+                static bool_t slowDown = false;
+                if ((angle > 174 || angle < 0) && !slowDown && changedEdge)
+                {
+                    printf("------------------------------------楕円突入のため減速------------------------------------\n");
+                    slowDown = true;
+                    dynamic_base_speed = 35;
+                    target_color = 270;
+                }
+            }
+
+            // 交差点を突破
+            static bool_t atCrossing = false;
+            if (changedEdge && blue_line_count == 1)
+            {
+                printf("----------------------------------【楕円突入】まっすぐGo--------------------------------------------------------------------\n");
+                if (!atCrossing)
+                {
+                    ev3_gyro_sensor_reset(gyro_sensor);
+                    angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+                    atCrossing = true;
+                }
+
+                motor_impals = true;
+                ev3_motor_set_power(left_motor, 42);
+                ev3_motor_set_power(right_motor, 34);
+                if ((time - latest_passed_blue_line_time) > 17)
+                {
+                    passPerfectCercle = true;
+                    selected_pid_parameter = 1;
                     motor_impals = false;
-                    loopedOnce = true;
+                    initialize_pid_value();
+                    dynamic_base_speed = 32;
+                    printf("まっすぐGo終了");
                 }
             }
         }
-
-        // センサーが連続周回で壊れるため、一度静止＋値のリセット
-        static bool_t resetedValue = false;
-        static bool_t doneWait = false;
-        static int waitTimer = 0;
-        if (loopedOnce && !resetedValue)
+    }
+    if (!takeVideoAtFirst)
+    {
+        if (enteringDoubleLoop && !passPerfectCercle)
         {
-            // 一度静止
-            doneWait = waitMSecond(&is_motor_stop, &waitTimer, 3);
-            // 静止後、値のリセット
-            if (doneWait)
-            {
-                // センサー関係の値全リセット
-                initialize_pid_value();
-                ev3_gyro_sensor_reset(gyro_sensor);
-                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-                is_motor_stop = false;
-                motor_impals = false;
-                dynamic_base_speed = 40;
-
-                resetedValue = true;
-            }
-        }
-
-        /*
-        正円２周目
-        */
-        if (loopedOnce && resetedValue)
-        {
-            static bool_t changeTargetColor = false;
-            if (!changeTargetColor)
-            {
-                target_color = 180;
-                changeTargetColor = true;
-            }
-            printf("2周目");
             // 楕円交差点部分に向けてエッジ切り替え
             static bool_t changedEdge = false;
             if (angle > 110 && !changedEdge) // ここを変更
@@ -225,31 +245,42 @@ void tracer_task(intptr_t unused)
                 changedEdge = true;
                 printf("time:%d\n", time);
             }
-
             // 楕円突破に向けて、遅くするタイミング　
             static bool_t slowDown = false;
-            if (abs(angle) > 174 && !slowDown)
+            if (abs(angle) > 174 && !slowDown && changedEdge)
             {
                 printf("------------------------------------楕円突入のため減速------------------------------------\n");
                 slowDown = true;
-                dynamic_base_speed = 32;
+                dynamic_base_speed = 35;
                 target_color = 270;
             }
             // 交差点を突破
+            static bool_t atCrossing = false;
             if (changedEdge && blue_line_count == 1)
             {
-                printf("------------------------------------楕円突入------------------------------------\n");
+                printf("----------------------------------【楕円突入】まっすぐGo--------------------------------------------------------------------\n");
+                if (!atCrossing)
+                {
+                    ev3_gyro_sensor_reset(gyro_sensor);
+                    angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+                    atCrossing = true;
+                }
 
-                // 角度リセット
-                ev3_gyro_sensor_reset(gyro_sensor);
-                angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-                passPerfectCercle = true;
-                initialize_pid_value();
-                selected_pid_parameter = 1;
+                motor_impals = true;
+                ev3_motor_set_power(left_motor, 42);
+                ev3_motor_set_power(right_motor, 34);
+                if ((time - latest_passed_blue_line_time) > 17)
+                {
+                    passPerfectCercle = true;
+                    selected_pid_parameter = 1;
+                    motor_impals = false;
+                    initialize_pid_value();
+                    dynamic_base_speed = 32;
+                    printf("まっすぐGo終了");
+                }
             }
         }
     }
-
     /*
      ミニフィグ撮影
     */
@@ -371,7 +402,7 @@ void tracer_task(intptr_t unused)
             if (doneFourthTask)
             {
                 blue_line_count = 0;
-                dynamic_base_speed = 32;
+                dynamic_base_speed = 35;
                 trace_edge = RIGHT_EDGE;
                 target_color = 180;
                 escapeEllipse = true;
@@ -383,28 +414,102 @@ void tracer_task(intptr_t unused)
         楕円を脱出し、正円に再侵入
     */
     static bool_t passEllipse = false;
+    static bool_t atCrossing = false;
+
+    static int doneMassuguGOTime;
+
     if (escapeEllipse && !passEllipse && blue_line_count == 1)
     {
-        printf("----------------------------------楕円脱出--------------------------------------------------------------------");
-        selected_pid_parameter = 0;
-        initialize_pid_value();
-        passEllipse = true;
-        blue_line_count = 0;
+        printf("----------------------------------【楕円脱出】まっすぐGo--------------------------------------------------------------------");
+        if (!atCrossing)
+        {
+            ev3_gyro_sensor_reset(gyro_sensor);
+            angle = ev3_gyro_sensor_get_angle(gyro_sensor);
+            atCrossing = true;
+        }
+
+        motor_impals = true;
+        ev3_motor_set_power(left_motor, 35);
+        ev3_motor_set_power(right_motor, 50);
+        if ((time - latest_passed_blue_line_time) > 10)
+        {
+            selected_pid_parameter = 1;
+            motor_impals = false;
+            initialize_pid_value();
+            passEllipse = true;
+            blue_line_count = 0;
+            doneMassuguGOTime = time;
+            dynamic_base_speed = 32;
+            printf("まっすぐGo終了");
+        }
+    }
+
+    // 楕円脱出後 一定期間経過後に速度40に設定
+    static bool_t setSpeedPassEllipse = false;
+    if (!setSpeedPassEllipse)
+    {
+        if ((passEllipse && (time - doneMassuguGOTime) > 200))
+        {
+            dynamic_base_speed = 40;
+            setSpeedPassEllipse = true;
+            printf("楕円脱出後 速度40に設定\n");
+        }
+    }
+
+    // 後半部分で撮影する場合
+    if (!takeVideoAtFirst)
+    {
+
+        if (passEllipse)
+        {
+            static bool_t arriveTakeVideoPosition = false;
+
+            // 撮影位置まで移動
+            if (!arriveTakeVideoPosition)
+            {
+                if (passEllipse && (time - doneMassuguGOTime) > 50)
+                {
+                    if (angle > takeVideoAngle)
+                    { // 機体ストップ
+                        is_motor_stop = true;
+                        ev3_motor_set_power(left_motor, 0);
+                        ev3_motor_set_power(right_motor, 0);
+                        arriveTakeVideoPosition = true;
+                    }
+                }
+            }
+            // 撮影位置到達後動画撮影
+            if (!doneTakeVideo && arriveTakeVideoPosition)
+            {
+                // 90°曲げる、遠心力を考慮して14°手前で止める
+                doneTakeVideo = takePhotoOfTrainAndLandscape(&motor_impals, &is_motor_stop, 90, 14); // ここを変更
+            }
+        }
     }
 
     /*
     楕円脱出後 エッジ切り替え
     */
-    static bool_t chengedEdgeAfterEllipse = false;
-    if (passEllipse && !chengedEdgeAfterEllipse)
+    // 楕円脱出まっすぐGOと(後半部でプラレール撮影がある場合を考慮して)プラレール撮影が両方終了していることを保証するフラグ
+    static bool_t isAbleConditon = false;
+    if (!isAbleConditon)
     {
-        if ((time - latest_passed_blue_line_time) > 300)
+        if ((passEllipse && (time - doneMassuguGOTime) > 200) && (setDoneTakeVideoTime && (time - doneTakeVideoTime) > 50))
         {
-            trace_edge = LEFT_EDGE;
-            chengedEdgeAfterEllipse = true;
-            dynamic_base_speed = 40;
-            target_color = 150;
+            isAbleConditon = true;
+            printf("楕円脱出後 エッジ切り替えが可能になりました。\n");
         }
+    }
+    // 条件を満たしたので、楕円脱出後エッジ切り替え
+    static bool_t chengedEdgeAfterEllipse = false;
+    if (isAbleConditon && !chengedEdgeAfterEllipse)
+    {
+        printf("楕円脱出後 エッジ切り替え");
+        selected_pid_parameter = 0;
+        trace_edge = LEFT_EDGE;
+        chengedEdgeAfterEllipse = true;
+        target_color = 150;
+        blue_line_count = 0;
     }
 
     /*
@@ -418,6 +523,7 @@ void tracer_task(intptr_t unused)
             dynamic_base_speed = 45;
             if ((time - latest_passed_blue_line_time) > 400)
             {
+                printf("ダブルループを脱出し、スマートキャリー攻略開始地点（青の〇）で止まる");
                 is_motor_stop = true;
                 ev3_motor_set_power(left_motor, 0);
                 ev3_motor_set_power(right_motor, 0);
@@ -849,6 +955,7 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
     if ((startAngle > arrivalAngle) && !conditionIsInvert)
     {
         conditionIsInvert = true;
+        printf("conditionIsInvertがtrueになった");
     }
 
     /*
@@ -859,8 +966,9 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
     {
         printf("arrivalAngle：%d", arrivalAngle);
         printf("angle：%d", angle);
+        printf("conditionIsInvert：%d", conditionIsInvert);
         // 到着角度になるまで車輪を動かす
-        if (arrivalAngle > angle && !conditionIsInvert)
+        if (!conditionIsInvert && arrivalAngle > angle)
         {
             printf("【楕円での撮影タスク：帰り】移動中・・・\n");
             // 170~179のものは、負になった時点で動作を止める
@@ -893,6 +1001,7 @@ bool_t backToStartPointAtEllipse(int16_t arrivalAngle, bool_t *pointer_motor_imp
         ev3_motor_set_power(right_motor, 0);
 
         // このタスクのフラグをリセット
+        startAngleIsNull = true;
         isNeedAngleBuffer = false;
         conditionIsInvert = false;
         arrive = false;
