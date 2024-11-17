@@ -28,6 +28,7 @@ def move_motor(angle, distance):
 # ボトルの方向を向く
 def face_red_bottle(camera_handle):
     print("START-face_red_bottle")
+    object_bottom_line_y = 480
     while True:
         frame = read(camera_handle)
         contours_red = ctl_pic.detect_all_red_object(frame)
@@ -63,12 +64,14 @@ def face_red_bottle(camera_handle):
             elif object_center > frame_center + 20:
                 move_motor("right", frame_center - object_center)
             else:
+                object_bottom_line_y = y + h
                 break
             ctl_pic.draw_center_of_gravity(contour_bottle,frame)
         ctl_pic.draw_scale(frame)    
         show_camera_and_get_key('smart', frame)
 
         time.sleep(0.5)
+    return object_bottom_line_y
 
 def get_frame_cropped(frame):
         # 画像の高さと幅を取得
@@ -86,7 +89,7 @@ def get_frame_cropped(frame):
 
 # 青マーカーの方向を向く
 def face_blue_marker(camera_handle):
-    print("START-face_red_bottle")
+    print("START-face_blue_marker")
     while True:
         frame = read(camera_handle)
         frame = get_frame_cropped(frame)
@@ -112,8 +115,8 @@ def face_blue_marker(camera_handle):
         time.sleep(0.5)
 
 
-def approach_red_bottle(camera_handle):
-    send_wait("FW(80,100,100)")
+def approach_red_bottle(camera_handle, distance= 80):
+    send_wait("FW("+str(distance)+",100,100)")
     # frame = read(camera_handle)
     # x, y, w, h = ctl_pic.detect_red_object(frame)
     # distance = ctl_pic.get_distance(x,y)
@@ -200,9 +203,14 @@ def start(camera_handle):
 
     send("BEEP_ON()")
     cv2.namedWindow('smart')
-    face_red_bottle(camera_handle) # ボトルの方向を向く
-    send_wait("BW(5,50,50)")  
-    approach_red_bottle(camera_handle) # ボトルまで近づく
+    bottle_y = face_red_bottle(camera_handle) # ボトルの方向を向く
+    print(f"bottle={bottle_y}")
+    if (bottle_y > 150):
+        send_wait("BW(10,50,50)")  
+        approach_red_bottle(camera_handle, 85) # ボトルまで近づく
+    else:
+        approach_red_bottle(camera_handle, 75) # ボトルまで近づく
+        
     send_wait("CW(60,50,80)")     
     face_blue_marker(camera_handle)
     approach_circle(camera_handle,155)

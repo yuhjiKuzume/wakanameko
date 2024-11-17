@@ -86,12 +86,12 @@ def read(camera_handle):
 
 
 
-def show_camera_and_get_key(title, frame):
+def show_camera_and_get_key(title, frame, wait_time=1):
     if CANNOT_SHOW_FRAME is True:
         return True, KEY_ESC
     
     cv2.imshow(title,frame)
-    key = cv2.waitKeyEx(1) # waitKeyだとカーソル押下しても0が返ってくる
+    key = cv2.waitKeyEx(wait_time) # waitKeyだとカーソル押下しても0が返ってくる
     # 's'キーが押されたらsave
     if key == ord('s'):
         dt_now = datetime.datetime.now()

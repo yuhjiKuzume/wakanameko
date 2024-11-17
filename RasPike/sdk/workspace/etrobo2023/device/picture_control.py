@@ -11,13 +11,40 @@ def detect_blue_object(frame):
     upper_blue = np.array([140, 255, 255])
     # 青色のマスクを作成
     mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    # 輪郭を検出
+
+    # 一番大きい輪郭を検出
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if contours:
         largest_contour = max(contours, key=cv2.contourArea)
         x, y, w, h = cv2.boundingRect(largest_contour)
         return x ,y ,w, h
-    return None
+    return None    
+
+
+def detect_most_wide_blue_object(frame):
+    # HSV色空間に変換
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # 青色の範囲を定義
+    lower_blue = np.array([100, 150, 0])
+    upper_blue = np.array([140, 255, 255])
+    # 青色のマスクを作成
+    mask = cv2.inRange(hsv, lower_blue, upper_blue)
+    # 輪郭を検出
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+ 
+    # 最も横幅が大きい青色の物体を格納する変数を初期化
+    widest_blue_object = None
+    max_width = -1
+    
+    # 輪郭を反復処理して最も横幅が大きい青色の物体を検出
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        if w > max_width:
+            max_width = w
+            widest_blue_object = (x, y, w, h)
+    
+    return widest_blue_object
+
 
 def detect_all_blue_object(frame):
     # HSV色空間に変換
@@ -50,7 +77,7 @@ def detect_yellow_object(frame):
         return x ,y ,w, h
     return None
 
-def detect_all_blue_object(frame):
+def detect_all_yellow_object(frame):
     # HSV色空間に変換
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     # 黄色の範囲を定義
@@ -325,17 +352,26 @@ def find_intersection(line1, line2):
 
                 
 
-def draw_line(line, frame):
+def draw_line(line, frame, color=(0, 0, 255)):
     if line is not None:
         x1, y1, x2, y2 = line
-        cv2.line(frame, (x1, y1), (x2, y2), (0, 0, 255), 3)  # 赤色で描画
+        cv2.line(frame, (x1, y1), (x2, y2), color, 3)  # 赤色で描画
     
+def draw_rectangle(obj, frame, color=(0, 0, 255)):
+    x, y, w, h = obj
+    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+
 
 def get_point(line, y_position):
-    # Y=10の位置に赤い丸を描画
-    x1, y1, x2, y2 = line
-    x_position = int((y_position - y1) * (x2 - x1) / (y2 - y1) + x1)
-    return x_position
+    if line is not None:
+        # Y=10の位置に赤い丸を描画
+        x1, y1, x2, y2 = line
+        
+        if y2 == y1:
+            return x1
+        x_position = int((y_position - y1) * (x2 - x1) / (y2 - y1) + x1)
+        return x_position
+    return None
 
 def draw_dot(x,y,frame):
     cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # 赤い丸を描画
@@ -364,6 +400,20 @@ def get_frame_cropped(frame):
     start_y = height // 4
     end_x = start_x + width // 2
     end_y = start_y + height // 2
+
+    # フレームをトリミング
+    cropped_frame = frame[start_y:end_y, start_x:end_x]
+    return cropped_frame
+
+def get_crop_frame_3_4(frame):
+            # 画像の高さと幅を取得
+    height, width = frame.shape[:2]
+
+    # 3/4にトリミング
+    start_x = 0
+    start_y = 0
+    end_x = start_x + width
+    end_y = start_y + height *3// 4
 
     # フレームをトリミング
     cropped_frame = frame[start_y:end_y, start_x:end_x]
@@ -421,6 +471,24 @@ def draw_center_of_gravity(contour, frame):
         cx = int(M['m10'] / M['m00'])
         cy = int(M['m01'] / M['m00'])
         cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)
+
+def find_y_at_x(line, point_x=320):
+    x1, y1, x2, y2 =line
+
+    # 直線が垂直（x1 == x2）の場合をチェック
+    if x1 == x2:
+        raise ValueError("直線が垂直のため、特定のx値に対するy座標を求めることができません。")
+    
+    # 直線の傾き (m) を計算
+    m = (y2 - y1) / (x2 - x1)
+    
+    # 直線のy切片 (b) を計算
+    b = y1 - m * x1
+    
+    # x = 320 のときの y 座標を計算
+    y_at_x = m * point_x + b
+    
+    return y_at_x
         
 def find_x_at_y0(line):
     x1, y1, x2, y2 =line
