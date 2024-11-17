@@ -134,7 +134,7 @@ def approach_circle(camera_handle,threshold_y):
     thread.start()
 
     right_motor.value = 60
-    left_motor.value = 60
+    left_motor.value = 61
 
     while True:
         # カメラから画像を取得する
@@ -205,6 +205,6 @@ def start(camera_handle):
     approach_red_bottle(camera_handle) # ボトルまで近づく
     send_wait("CW(60,50,80)")     
     face_blue_marker(camera_handle)
-    approach_circle(camera_handle,150)
+    approach_circle(camera_handle,155)
     #go_to_circle(camera_handle)
     return True

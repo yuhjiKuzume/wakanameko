@@ -45,11 +45,11 @@ def start(camera_handle):
     send_wait("FW(20,60,60)")  # 前進20cm
     send_wait("CW(40)")       # 左45度
 
-    green_line_trace(camera_handle)
+    green_line_trace(camera_handle, 10)
     
     send_wait("CW(75)")        # 右90度
     correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-    send_wait("FW(115,60,60)")  # 前進115cm
+    send_wait("FW(115,65,60)")  # 前進115cm
 
     # thread = threading.Thread(target=turn_and_face_1)
     # print("A")
@@ -71,7 +71,7 @@ def start(camera_handle):
     
 
     
-def green_line_trace(camera_handle):
+def green_line_trace(camera_handle, correct = 0):
     # 共有メモリを使ってモータコントローラスレッドにデータを送る
     left_motor = Value('i', 0)
     right_motor = Value('i', 0)
@@ -94,33 +94,37 @@ def green_line_trace(camera_handle):
             ctl_pic.draw_line(line_v,frame)
             line_h = ctl_pic.get_bottom_most_line(lines,frame)
 
+            # 目標値の初期値は、画面中央真ん中
+            intersection_y = 0
+            intersection_x = 320
+
+            # 緑の横線を検出
             ctl_pic.draw_line(line_h,frame)
+
+            # 緑の横線が検出できた時
             if line_h is not None:
-                intersection_x, intersection_y= ctl_pic.find_intersection(line_v, line_h)
-            
-                if line_h is None:
-                    intersection_y = 0
-                    intersection_x = ctl_pic.find_x_at_y0(line_v)
-                     
-                else:
-                    # 交点を計算
-                    intersection_x, intersection_y = ctl_pic.find_intersection(line_v, line_h)
-                
-                    # 黄色で交点を描画
-                    cv2.circle(frame, (intersection_x, intersection_y), 5, (0, 255, 255), -1)  # 黄色で描画
+                # 交点を計算
+                intersection_x, intersection_y = ctl_pic.find_intersection(line_v, line_h)
+            else:
+                # 直線と画面上端の交点を求める
+                intersection_x = ctl_pic.find_x_at_y0(line_v)
 
-                    power = (320 - intersection_x)//20
-                    # print(power,intersection_x,intersection_y)
+            # 黄色で交点を描画
+            cv2.circle(frame, (int(intersection_x), int(intersection_y)), 5, (0, 255, 255), -1)  # 黄色で描画
 
-                left_motor.value = base_speed + power
-                right_motor.value = base_speed - power
+            intersection_x += correct
+            power = (320 - intersection_x)//20
+            # print(power,intersection_x,intersection_y)
 
-                print(intersection_y)
-                if intersection_y > 145:
-                    is_exit.value = -1 # モータ制御を止める
-                    send("MP(0,0)")
-                    print("intersection_y > 400")
-                    break;            
+            left_motor.value = base_speed + power
+            right_motor.value = base_speed - power
+
+            print(intersection_y)
+            if intersection_y > 145:
+                is_exit.value = -1 # モータ制御を止める
+                send("MP(0,0)")
+                print("intersection_y > 400")
+                break;            
 
         end_time = time.time()
         diff_time = end_time - start_time

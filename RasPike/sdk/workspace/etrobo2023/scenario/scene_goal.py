@@ -77,7 +77,7 @@ def turn_and_go_to_line():
     send("BEEP_ON()")
     send("ARM_SHAKE(300,2)")
     send_wait("BW(15,60,60)")
-    send_wait("CCW(100,60,60)")
+    send_wait("CCW(90,60,60)")
     send_wait("FW_B(50)")
     send_wait("CCW(35,60,60,True)")
 

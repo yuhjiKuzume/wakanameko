@@ -424,6 +424,10 @@ def draw_center_of_gravity(contour, frame):
         
 def find_x_at_y0(line):
     x1, y1, x2, y2 =line
+    # 直線が垂直（x1 == x2）の場合をチェック
+    if x1 == x2:
+        return x1
+    
     # 直線の傾き (m) を計算
     m = (y2 - y1) / (x2 - x1)
     
@@ -433,7 +437,7 @@ def find_x_at_y0(line):
     # y = 0 のときの x 座標を計算
     x_at_y0 = -b / m
     
-    return x_at_y0
+    return int(x_at_y0)
 
 def erase_green_left(frame):
     height, width = frame.shape[:2]
