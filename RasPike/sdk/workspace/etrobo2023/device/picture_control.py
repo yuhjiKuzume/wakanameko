@@ -31,6 +31,40 @@ def detect_all_blue_object(frame):
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     return contours
 
+def detect_yellow_object(frame):
+    # 画像を読み込む
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # 黄色の範囲を定義
+    lower_yellow = np.array([20, 100, 100])
+    upper_yellow = np.array([30, 255, 255])
+
+    # 黄色のマスクを作成
+    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    # 一番大きい輪郭を検出
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if contours:
+        largest_contour = max(contours, key=cv2.contourArea)
+        x, y, w, h = cv2.boundingRect(largest_contour)
+        return x ,y ,w, h
+    return None
+
+def detect_all_blue_object(frame):
+    # HSV色空間に変換
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    # 黄色の範囲を定義
+    lower_yellow = np.array([20, 100, 100])
+    upper_yellow = np.array([30, 255, 255])
+    # 黄色のマスクを作成
+    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+    # 輪郭を検出
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    return contours
+
+
+
+
 def detect_red_object(frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     lower_red = np.array([0, 120, 70])
@@ -386,4 +420,48 @@ def draw_center_of_gravity(contour, frame):
     if M['m00'] != 0:
         cx = int(M['m10'] / M['m00'])
         cy = int(M['m01'] / M['m00'])
-        cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)    
+        cv2.circle(frame, (cx, cy), 5, (0, 0, 255), -1)
+        
+def find_x_at_y0(line):
+    x1, y1, x2, y2 =line
+    # 直線の傾き (m) を計算
+    m = (y2 - y1) / (x2 - x1)
+    
+    # 直線のy切片 (b) を計算
+    b = y1 - m * x1
+    
+    # y = 0 のときの x 座標を計算
+    x_at_y0 = -b / m
+    
+    return x_at_y0
+
+def erase_green_left(frame):
+    height, width = frame.shape[:2]
+
+    # 緑の斜め線を検出するためにHSV色空間に変換
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    lower_green = np.array([35, 100, 100])
+    upper_green = np.array([85, 255, 255])
+    mask = cv2.inRange(hsv, lower_green, upper_green)
+
+    # 緑の斜め線の輪郭を検出
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if len(contours) == 0:
+        print("緑の斜め線が見つかりませんでした。")
+        return frame
+
+    # 最も大きな輪郭を選択
+    largest_contour = max(contours, key=cv2.contourArea)
+
+    # 緑の斜め線の左側を白にするためのマスクを作成
+    mask = np.zeros_like(frame)
+    cv2.drawContours(mask, [largest_contour], -1, (255, 255, 255), thickness=cv2.FILLED)
+
+    # 緑の斜め線より左側を白にする
+    for y in range(height):
+        for x in range(width):
+            if mask[y, x][0] == 255:
+                frame[y, :x] = [255, 255, 255]
+                break
+    return frame    

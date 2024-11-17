@@ -113,16 +113,61 @@ def face_blue_marker(camera_handle):
 
 
 def approach_red_bottle(camera_handle):
-    send_wait("FW(60,100,100)")
+    send_wait("FW(80,100,100)")
     # frame = read(camera_handle)
     # x, y, w, h = ctl_pic.detect_red_object(frame)
     # distance = ctl_pic.get_distance(x,y)
     # send_wait("FW("+str(distance)+",100,100)") 
 
 
+def approach_circle(camera_handle,threshold_y):
+    # 緑ラインのy座標を求める基準となるx座標
+    base_x = 320    # 画像の半分
+    # 共有メモリを使ってモータコントローラスレッドにデータを送る
+    left_motor = Value('i', 0)
+    right_motor = Value('i', 0)
+    is_exit = Value('i', 0)
+    sleep_time = 0.01
+
+    # モーターコントローラを裏で起動する
+    thread = threading.Thread(target=motor_control_thread, args=(left_motor,right_motor,sleep_time,is_exit))
+    thread.start()
+
+    right_motor.value = 60
+    left_motor.value = 60
+
+    while True:
+        # カメラから画像を取得する
+        frame = read(camera_handle)
+
+        # 緑色の境界線を検出する。
+        lines = ctl_pic.detect_green_white_boundary(frame)
+        if lines is None:
+            continue
+        line_h = ctl_pic.get_bottom_most_line(lines,frame)
+        ctl_pic.draw_line(line_h,frame)
+
+        x1, y1, x2, y2 = line_h
+        # 斜め線の画像中央付近のＹ座標を検出する
+        slope = (y2 - y1) / (x2 - x1)
+        intercept = y1 - slope * x1
+        target_green_line_y = slope * base_x  + intercept
+        # print(target_green_line_y)
+        cv2.circle(frame, (int(base_x), int(target_green_line_y)), 5, (0, 255, 255), -1)  # 赤い丸を描画
+        show_camera_and_get_key('smart', frame)
+        # 一定位置に来たら処理を抜ける。
+        if target_green_line_y > threshold_y:
+            break
+
+    right_motor.value = 0
+    left_motor.value = 0
+    is_exit.value = -1 # モータ制御を止める
+    send("MP(0,0)")
+    time.sleep(0.5)
+    # send("ARM_SHAKE()")
+
 def go_to_circle(camera_handle):
     send_wait("FW(80,100,100)")
-
 
 def approach_blue_mark(camera_handle):
     # 共有メモリを使ってモータコントローラスレッドにデータを送る
@@ -150,17 +195,16 @@ def approach_blue_mark(camera_handle):
 
     
 def start(camera_handle):
-    while True:
-        face_blue_marker(camera_handle)
+    # while True:
+    #     face_blue_marker(camera_handle)
 
-    # send("BEEP_ON()")
-    # cv2.namedWindow('smart')
-    # face_red_bottle(camera_handle) # ボトルの方向を向く
-    # approach_red_bottle(camera_handle) # ボトルまで近づく
-    # send_wait("CW(30,50,80)")     
-    # face_blue_marker(camera_handle)
-    # go_to_circle(camera_handle)
+    send("BEEP_ON()")
+    cv2.namedWindow('smart')
+    face_red_bottle(camera_handle) # ボトルの方向を向く
+    send_wait("BW(5,50,50)")  
+    approach_red_bottle(camera_handle) # ボトルまで近づく
+    send_wait("CW(60,50,80)")     
+    face_blue_marker(camera_handle)
+    approach_circle(camera_handle,150)
+    #go_to_circle(camera_handle)
     return True
-
-
-

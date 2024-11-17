@@ -47,11 +47,9 @@ def start(camera_handle):
 
     green_line_trace(camera_handle)
     
-    # correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-     #send_wait("FW(90,70,70)")  # 前進90cm
-    send_wait("CW(85)")        # 右90度
+    send_wait("CW(75)")        # 右90度
     correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-    send_wait("FW(90,60,60)")  # 前進90cm
+    send_wait("FW(115,60,60)")  # 前進115cm
 
     # thread = threading.Thread(target=turn_and_face_1)
     # print("A")
@@ -98,47 +96,40 @@ def green_line_trace(camera_handle):
 
             ctl_pic.draw_line(line_h,frame)
             if line_h is not None:
+                intersection_x, intersection_y= ctl_pic.find_intersection(line_v, line_h)
             
-                # 交点を計算
-                intersection_x, intersection_y = ctl_pic.find_intersection(line_v, line_h)
-            
-                # 黄色で交点を描画
-                cv2.circle(frame, (intersection_x, intersection_y), 5, (0, 255, 255), -1)  # 黄色で描画
-
-                power = (320 - intersection_x)//20
-                # power = 1
-                # if intersection_x < 200:
-                #     power = 2
-                # elif intersection_x < 300:
-                #     power = 1
-                # elif intersection_x < 340:
-                #     power = 0
-                # elif intersection_x < 440:
-                #     power = -1
-                # else: 
-                #     power = -2
-
-                print(power,intersection_x,intersection_y)
+                if line_h is None:
+                    intersection_y = 0
+                    intersection_x = ctl_pic.find_x_at_y0(line_v)
+                     
+                else:
+                    # 交点を計算
+                    intersection_x, intersection_y = ctl_pic.find_intersection(line_v, line_h)
                 
+                    # 黄色で交点を描画
+                    cv2.circle(frame, (intersection_x, intersection_y), 5, (0, 255, 255), -1)  # 黄色で描画
+
+                    power = (320 - intersection_x)//20
+                    # print(power,intersection_x,intersection_y)
 
                 left_motor.value = base_speed + power
                 right_motor.value = base_speed - power
 
-
-            if intersection_y > 200:
-                is_exit.value = -1 # モータ制御を止める
-                send("MP(0,0)")
-                print("intersection_y > 400")
-                break;            
+                print(intersection_y)
+                if intersection_y > 145:
+                    is_exit.value = -1 # モータ制御を止める
+                    send("MP(0,0)")
+                    print("intersection_y > 400")
+                    break;            
 
         end_time = time.time()
         diff_time = end_time - start_time
-        print(diff_time)
-        if (diff_time) > 4:
-            send("MP(0,0)")
-            is_exit.value = -1
-            print("time up")
-            break
+        # print(diff_time)
+        # if (diff_time) > 4:
+        #     send("MP(0,0)")
+        #     is_exit.value = -1
+        #     print("time up")
+        #     break
 
         ret , key = show_camera_and_get_key('frame', frame)
         if ret is False:

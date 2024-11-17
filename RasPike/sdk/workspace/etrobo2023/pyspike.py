@@ -88,7 +88,7 @@ def main():
 # シナリオの実行
 #    test.start(cam_handle)
 #    chase_red.start(cam_handle)
-#    moveblock.start(cam_handle)
+    moveblock.start(cam_handle)
     smartmove.start(cam_handle)
     goal.start(cam_handle)
     
