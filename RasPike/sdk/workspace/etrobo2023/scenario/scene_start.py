@@ -8,11 +8,12 @@ from multiprocessing import Value, Array, Process
 
 MODULE_TEST = True
 #if MODULE_TEST is not True:
+from device.camera_control import read, show_camera_and_get_key
 import device.camera_control as ctl_cam 
 from device.serial_control import send
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
-
+from device.motor_control import  motor_control_thread
 
 
 # このプログラムの開始
@@ -42,16 +43,9 @@ def start(camera_handle):
         KEY_CURSOR_UP     = 0x260000
         KEY_CURSOR_RIGHT  = 0x270000
         KEY_CURSOR_DOWN   = 0x280000
-        cv2.imshow("frame",frame)
-        key = cv2.waitKeyEx(1)
+        ret, key = show_camera_and_get_key("frame",frame)
         if key != -1:
             print(hex(key))
-        # 's'キーが押されたらsave
-        if key == ord('s'):
-            print("Pushed S")
-            dt_now = datetime.datetime.now()
-            file_name = dt_now.strftime('%Y%m%d_%H%M%S_')
-            cv2.imwrite(file_name+"frame"+".jpg",frame)
 
         elif key == KEY_CURSOR_UP:
             print("UP")
@@ -77,7 +71,7 @@ def start(camera_handle):
             break
 
 if __name__ == "__main__":
-    camera_handle = cam.init_camera()
+    camera_handle = ctl_cam.init_camera()
     start(camera_handle)
 
     camera_handle.release()

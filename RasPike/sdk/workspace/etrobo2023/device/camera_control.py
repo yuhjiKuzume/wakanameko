@@ -4,6 +4,8 @@ import threading
 import datetime
 import platform
 
+CANNOT_SHOW_FRAME = False
+
 # どのデバッグ環境でもモジュールテストできるようにする
 if platform.system() != 'Windows':
     USE_PICAMERA2 = True
@@ -45,6 +47,7 @@ KEY_CTRL_Y        = 0x19
 if USE_PICAMERA2 is True:
     def init_camera():
         # カメラを初期化
+        print("picamera-mode")
         camera_handle = Picamera2()
         mode = camera_handle.sensor_modes[3] 
         config = camera_handle.create_preview_configuration({"size":(1640,1232)}) # for V2 camera
@@ -57,8 +60,13 @@ if USE_PICAMERA2 is True:
         frame = cv2.resize(frame,(640,480))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return frame
+    
+    def close_camera(camera_handle):
+        camera_handle.stop()
+        cv2.destroyAllWindows()
 else:
     def init_camera():
+        print("opencv-mode")
         if platform.system() == 'Windows':
             camera_handle = cv2.VideoCapture(0,cv2.CAP_DSHOW)
         else:
@@ -68,17 +76,22 @@ else:
     def read_camera(camera_handle):
         _, frame = camera_handle.read()
         return frame
+    
+    def close_camera(camera_handle):
+        camera_handle.release()
+        cv2.destroyAllWindows()
 
 def read(camera_handle):
     return read_camera(camera_handle)
 
-def close_camera(camera_handle):
-    camera_handle.release()
-    cv2.destroyAllWindows()
 
-def show_camera_and_get_key(title, frame):
+
+def show_camera_and_get_key(title, frame, wait_time=1):
+    if CANNOT_SHOW_FRAME is True:
+        return True, KEY_ESC
+    
     cv2.imshow(title,frame)
-    key = cv2.waitKeyEx(1) # waitKeyだとカーソル押下しても0が返ってくる
+    key = cv2.waitKeyEx(wait_time) # waitKeyだとカーソル押下しても0が返ってくる
     # 's'キーが押されたらsave
     if key == ord('s'):
         dt_now = datetime.datetime.now()

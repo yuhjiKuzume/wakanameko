@@ -4,6 +4,8 @@ import threading
 import datetime
 import time
 
+from device.camera_control import read, show_camera_and_get_key
+
 import device.camera_control as ctl_cam
 import device.serial_control as ctl_ser
 import device.keyboard_control as ctl_key
@@ -46,7 +48,7 @@ def isBlueCircleObject(rectangle, frame):
 def isLandscape(rectangle):
     x, y, w, h = rectangle
     # ひらべったい場合はサークル
-    if w > h:
+    if w > h*1.2:
         return True
     else:
         return False
@@ -80,16 +82,23 @@ def start(camera_handle):
         frame = camera_handle.capture_array()
         frame = cv2.resize(frame,(640,480))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        contours_red = ctl_pic.detect_all_red_object(frame)
+        contours_big = []
+        for contour in contours_red:
+            # 輪郭の面積を計算する
+            area = cv2.contourArea(contour)
+        
+            # 面積が一定以上の場合にのみ処理を行う
+            if area > 1500:  # 面積の閾値は適宜調整してください
+                contours_big.append(contour)
+
+                # 輪郭を取得
+                x, y, w, h = cv2.boundingRect(contour)
+                if ctl_pic.isVertical([x, y, w, h]):
+                    contour_bottle = contour
+
             
-        cropped_frame = ctl_pic.get_frame_cropped(frame)
-        cv2.imshow('cropped', cropped_frame)
-
-        # -------------------------
-        # Get Infomation
-        #lines = ctl_pic.detect_lines(frame)
-        #green_line = ctl_pic.detece_green_white_boundary(frame)
-
-
         result_red = ctl_pic.detect_red_object(frame)
         if result_red:
             x, y, w, h = result_red
@@ -129,15 +138,6 @@ def start(camera_handle):
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
             cv2.putText(frame, red_text, (x, y+h+10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
-        cv2.imshow('frame', frame)
-
-        key = cv2.waitKey(1)
-        # 's'キーが押されたらsave
-        if key == ord('s'):
-            dt_now = datetime.datetime.now()
-            file_name = dt_now.strftime('%Y%m%d_%H%M%S')
-            cv2.imwrite(file_name+".jpg",frame)
-            
-        # 'q'キーが押されたらループを終了
-        if key == ord('q'):
+        ret, _ = show_camera_and_get_key('frame', frame)
+        if ret is False:
             break

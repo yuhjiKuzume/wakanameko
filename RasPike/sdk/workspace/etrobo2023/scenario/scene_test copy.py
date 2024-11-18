@@ -2,10 +2,12 @@ import cv2
 import numpy as np
 import threading
 import datetime
-from time import sleep
+import time
 
 from device.camera_control import read, show_camera_and_get_key
-from device.serial_control import send
+
+import device.camera_control as ctl_cam
+import device.serial_control as ctl_ser
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
 
@@ -13,16 +15,16 @@ def move_motor(str):
     pass
 
 def motor_ctrl():
-    sleep(1)
+    time.sleep(1)
 
 def motor_ctrl_old():
-    send("motor_pair.pwm(100,-100)")
-    sleep(1)
-    send("motor_pair.pwm(100,-50)")
-    sleep(1)
-    send("motor_pair.pwm(100,-100)")
-    sleep(1)
-    send("motor_pair.pwm(0,0)")
+    ctl_ser.send("motor_pair.pwm(100,-100)")
+    time.sleep(1)
+    ctl_ser.send("motor_pair.pwm(100,-50)")
+    time.sleep(0.2)
+    ctl_ser.send("motor_pair.pwm(100,-100)")
+    time.sleep(1)
+    ctl_ser.send("motor_pair.pwm(0,0)")
 
 
 def isBlueCircleObject(rectangle, frame):
@@ -46,7 +48,7 @@ def isBlueCircleObject(rectangle, frame):
 def isLandscape(rectangle):
     x, y, w, h = rectangle
     # ひらべったい場合はサークル
-    if w > h:
+    if w > h*1.2:
         return True
     else:
         return False
@@ -77,7 +79,10 @@ def start(camera_handle):
     thread.start()
 
     while True:
-        frame = read(camera_handle)
+        frame = camera_handle.capture_array()
+        frame = cv2.resize(frame,(640,480))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            
         cropped_frame = ctl_pic.get_frame_cropped(frame)
         show_camera_and_get_key('cropped', cropped_frame)
 

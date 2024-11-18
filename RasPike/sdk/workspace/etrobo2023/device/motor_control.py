@@ -6,7 +6,7 @@ import time
 import platform
 from multiprocessing import Value, Array, Process
 
-MODULE_TEST = True
+MODULE_TEST = False
 #if MODULE_TEST is not True:
 import device.camera_control as ctl_cam 
 from device.serial_control import send
@@ -34,7 +34,9 @@ def motor_control_thread(left_power, right_power, sleep_time, is_exit):
 
     while True:
         # プロセスの終了処理(0以外が渡された時)
-        if is_exit.value != 0 : break
+        if is_exit.value != 0 :
+            print("get is_exit")
+            break
         
         # 前回送信したデータと違いがあれば送信する
         if left_power.value != prev_left_power or right_power.value != prev_right_power:

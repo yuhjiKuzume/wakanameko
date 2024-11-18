@@ -2,7 +2,7 @@ import serial
 import threading
 import time
 
-SER_DEBUG = False
+SER_DEBUG = True
 ser = None
 
 # シリアル通信初期化＆開始
@@ -64,7 +64,8 @@ def read_from_serial():
 
 def send(str):
     global ser
-    ser.write(str.encode('utf-8')+b'\r\n')
+    if ser is not None:
+        ser.write(str.encode('utf-8')+b'\r\n')
 #    ser.write(b'\r\n')   
     if SER_DEBUG is True:
         print(str)
@@ -72,22 +73,24 @@ def send(str):
 def send_wait(str):
     global ser
     ret = True
-
-    rec_buff.clear()
-    ser.write(str.encode('utf-8'))
-    ser.write(b'\r\n')   
-    if SER_DEBUG is True:
-        print(str)
-    #print(rec_buff)
-    while True:
-        time.sleep(0.1)
+    #if SER_DEBUG is True:
+    print(str)
+    if ser is not None:
+        rec_buff.clear()
+        ser.write(str.encode('utf-8'))
+        ser.write(b'\r\n')   
         if SER_DEBUG is True:
-            print(rec_buff)
-        if 'True' in rec_buff:
-            break
-        if 'False' in rec_buff:
-            ret = False
-            break
+            print(str)
+        #print(rec_buff)
+        while True:
+            time.sleep(0.1)
+            if SER_DEBUG is True:
+                print(rec_buff)
+            if 'True' in rec_buff:
+                break
+            if 'False' in rec_buff:
+                ret = False
+                break
     return ret
 
 
@@ -100,6 +103,10 @@ def get_serial_handle():
 def get_serial_buff():
     global rec_buff
     return rec_buff
+
+def clear_serial_buff():
+    global rec_buff
+    rec_buff.clear()
 
 # -------------
 # SPIKEの全てのモータを停止

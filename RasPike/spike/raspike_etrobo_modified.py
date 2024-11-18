@@ -73,19 +73,24 @@ motor_rot_C.mode(2)
 spike_serial_port = port_map["spike_serial_port"]
 
 # Start of added Modules -----------------------------------------
-spike_you = 0       #spike_ヨー角
+spike_angle = 0       #spike_ヨー角
 spike_color = None  #SPIKE RGB
 
 # モーターペア化
 motor_pair = motor_B.pair(motor_C)
+def motor_rotation_B():
+    return motor_rot_B.get()[0]
+
+def motor_rotation_C():
+    return motor_rot_C.get()[0] * -1
 
 def wait_motor_stop():
     while True:
-        before_b = motor_rot_B.get()[0]
-        before_c = motor_rot_C.get()[0]
+        before_b = motor_rotation_B()
+        before_c = motor_rotation_C()
         time.sleep(0.1)
-        after_b = motor_rot_B.get()[0]
-        after_c = motor_rot_C.get()[0]
+        after_b = motor_rotation_B()
+        after_c = motor_rotation_C()
         # print(str(before_b)+","+str(after_b)+","+str(before_c)+","+str(after_c))
         if before_b != 0 and after_b != 0 and before_c != 0 and after_c != 0:
             if before_b == after_b and before_c == after_c:
@@ -123,17 +128,45 @@ def BEEP_ON(frq=1300):
     time.sleep(0.1)
     hub.sound.beep(frq,20)
 
-#
+
+def enable_cw(start_angle, current_angle, move_step  ):
+    # -180～180座標系を0～360座標系に変換　
+    start_angle += 180
+    current_angle += 180
+    target_angle = start_angle + move_step
+
+    if(target_angle >= current_angle >= start_angle):
+        return True
+    elif (target_angle>=360):
+        if (current_angle<=target_angle-360):
+            return True
+    return False
+
+
+def enable_ccw(start_angle, current_angle, move_step ):
+    # -180～180座標系を0～360座標系に変換　
+    start_angle += 180
+    current_angle += 180
+    target_angle = start_angle - move_step
+
+    if(target_angle <= current_angle <= start_angle):
+        return True
+    elif (target_angle <= 0):
+        if (current_angle>=target_angle+360):
+            return True
+    return False
+
 # 走行体右回転（CW方向）
 def CW(deg,RPwr=50,LPwr=50,is_stop_black=False):
-    global spike_you
-    spike_you = hub.motion.yaw_pitch_roll(0)
+    global spike_angle
+    start_angle = spike_angle = hub.motion.yaw_pitch_roll()[0]
+    print("Y:"+str(spike_angle))
     motor_pair.pwm(-RPwr,-LPwr)
     while True:
         time.sleep(0.1)
-        spike_you = hub.motion.yaw_pitch_roll()[0]
-        print(str(spike_you))
-        if(spike_you>=deg):
+        current_angle = spike_angle = hub.motion.yaw_pitch_roll()[0]
+        print("Y:"+str(spike_angle))
+        if (enable_cw(start_angle, current_angle, deg) is False):
             motor_pair.pwm(0,0)
             break
         if is_stop_black is True:
@@ -151,14 +184,15 @@ def CW(deg,RPwr=50,LPwr=50,is_stop_black=False):
 
 # 走行体左回転（CCW方向）
 def CCW(deg,RPwr=50,LPwr=50,is_stop_black=False):
-    global spike_you
-    spike_you = hub.motion.yaw_pitch_roll(0)
+    global spike_angle
+    start_angle = spike_angle = hub.motion.yaw_pitch_roll()[0]
+    print("Y:"+str(spike_angle))
     motor_pair.pwm(RPwr,LPwr)
     while True:
         time.sleep(0.1)
-        spike_you = hub.motion.yaw_pitch_roll()[0]
-        print(str(spike_you))
-        if(spike_you<=-deg):
+        current_angle = spike_angle = hub.motion.yaw_pitch_roll()[0]
+        print("Y:"+str(spike_angle))
+        if (enable_ccw(start_angle, current_angle, deg) is False):
             motor_pair.pwm(0,0)
             break
         if is_stop_black is True:
@@ -179,6 +213,7 @@ def FW(cm,speed=50,power=50):
     r = 5
     degree = cm/(2*pi*r)*360
     motor_pair.preset(0,0)
+    #motor_pair.run_to_position(degree,-degree)
     motor_pair.run_to_position(degree,-degree,speed, power,1000,1000,0)
     wait_motor_stop()
     print("True")
@@ -324,7 +359,7 @@ def LT(Pwr=50, blue_color_check = True):
 
     print("True")
 
-def FW_B(Pwr=40):
+def FW_B(Pwr=50):
     setRGB()
     time.sleep(0.1)
     while True:
@@ -341,105 +376,54 @@ def to_goal():
     FW_B()
     LT()
 
-def FWA(cm,RPwr=40,LPwr=40):
-    pi = 3.14
-    r = 5
-    rpwr =RPwr
-    lpwr =LPwr
-    target_pos = cm/(2*pi*r)*360
-    motor_pair.preset(0,0)
-    while True:
-        time.sleep(0.01)
-        motor_pair.pwm(rpwr,-lpwr)
-        posB = motor_rot_B.get()[0]
-        posC = motor_rot_C.get()[0]
-        if(posB/target_pos>=1):
-            rpwr = 0
-            break
-        elif(posB/target_pos>0.7):
-            rpwr = RPwr*0.5
-        elif(posB/target_pos>0.6):
-            rpwr = RPwr*0.6
-        elif(posB/target_pos>0.5):
-            rpwr = RPwr*0.8
-        if(-posC/target_pos>=1):
-            lpwr = 0
-            break
-        elif(-posC/target_pos>0.7):
-            lpwr = LPwr*0.5
-        elif(-posC/target_pos>0.6):
-            lpwr = LPwr*0.6
-        elif(-posC/target_pos>0.5):
-            lpwr = LPwr*0.8
-        # print("target="+str(target_pos)+"("+str(posB)+","+str(rpwr)+")("+str(posC)+","+str(lpwr)+")")
-    motor_pair.pwm(0,0)
-    wait_motor_stop()
-    print("True")
-
-# 走行体交代
+# 走行体後退
 def BW(cm,speed=50,power=50):
     pi = 3.14
     r = 5
     degree = cm/(2*pi*r)*360
     motor_pair.preset(0,0)
-    motor_pair.run_to_position(degree,-degree,speed, power,1000,1000,0)
-    wait_motor_stop()
-    print("True")
-
-def BWA(cm,RPwr=40,LPwr=40):
-    pi = 3.14
-    r = 5
-    rpwr =RPwr
-    lpwr =LPwr
-    target_pos = cm/(2*pi*r)*360
-    motor_pair.preset(0,0)
-    while True:
-        time.sleep(0.01)
-        motor_pair.pwm(-rpwr,lpwr)
-        posB = motor_rot_B.get()[0]
-        posC = motor_rot_C.get()[0]
-        if(-posB/target_pos>=1):
-            rpwr = 0
-            break
-        elif(-posB/target_pos>0.7):
-            rpwr = RPwr*0.5
-        elif(-posB/target_pos>0.6):
-            rpwr = RPwr*0.6
-        elif(-posB/target_pos>0.5):
-            rpwr = RPwr*0.8
-        if(posC/target_pos>=1):
-            lpwr = 0
-            break
-        elif(posC/target_pos>0.7):
-            lpwr = LPwr*0.5
-        elif(posC/target_pos>0.6):
-            lpwr = LPwr*0.6
-        elif(posC/target_pos>0.5):
-            lpwr = LPwr*0.8
-        # print("target="+str(target_pos)+"("+str(posB)+","+str(rpwr)+")("+str(posC)+","+str(lpwr)+")")
-    motor_pair.pwm(0,0)
+    motor_pair.run_to_position(-degree,degree,speed, power,1000,1000,0)
     wait_motor_stop()
     print("True")
 
 def getRot():
     pi = 3.14
     r = 5
-    degB = motor_rot_B.get()[0]
-    degC = motor_rot_C.get()[0]
+    degB = motor_rotation_B()
+    degC = motor_rotation_C()
     cm_b = degB*(2*pi*r)/360
     cm_c = degC*(2*pi*r)/360
 
-    print("motor_B="+str(motor_rot_B.get())+":"+str(cm_b)+"cm")
-    print("motor_C="+str(motor_rot_B.get())+":"+str(cm_c)+"cm")
+    print("motor_B="+str(degB)+":"+str(cm_b)+"cm")
+    print("motor_C="+str(degC)+":"+str(cm_c)+"cm")
 
 # ヨー角
-def setYou(you=0):
-    hub.motion.yaw_pitch_roll(you)
+bActiveAngle = False
+def setAngle(angle=0):
+    hub.motion.yaw_pitch_roll(angle)
+
+def getAngle():
+    global spike_angle
+    spike_angle = hub.motion.yaw_pitch_roll()[0]
+    return spike_angle
 
 def getYou():
-    global spike_you
-    spike_you = hub.motion.yaw_pitch_roll()[0]
-    print(spike_you)
+    print("Y:"+str(getAngle()))
+
+async def getAngles(wait_time):
+    global spike_angle, bActiveAngle
+    bActiveAngle = True
+    while True:
+        print("Y:"+str(getAngle()))
+        time.sleep(wait_time)
+        if bActiveAngle is False:
+            break
+
+def logAngle(wait_time=1):
+    uasyncio.run(getAngles(wait_time))
+
+def stopAngle():
+    bActiveAngle = False
 
 # RGBセンサー
 def setRGB():
@@ -448,22 +432,30 @@ def setRGB():
 def getRGB():
     global spike_color
     numbers = color_sensor.get()
-    # 4で割った結果を新しいリストに格納
-    spike_color = [num // 4 for num in numbers]
-    #print(spike_color)
-    return spike_color
-
-async def getRGBs(wait_time):
-    global spike_color
-    while True:
-        numbers = color_sensor.get()
+    if len(numbers) != 4:
+        setRGB()
+    else:
         # 4で割った結果を新しいリストに格納
         spike_color = [num // 4 for num in numbers]
-        print(spike_color)
+        #print(spike_color)
+    return spike_color
+
+bActiveRGB = False
+
+async def getRGBs(wait_time):
+    global spike_color, bActiveRGB
+    bActiveRGB = True
+    while True:
+        print(getRGB())
         time.sleep(wait_time)
+        if bActiveRGB is False:
+            break
 
 def logRGB(wait_time=1):
     uasyncio.run(getRGBs(wait_time))
+
+def stopRGB():
+    bActiveRGB = False
 
 # Display
 def RICOH():
@@ -684,7 +676,7 @@ async def notifySensorValues():
     global motor_reset_A,motor_reset_B,motor_reset_C,color_sensor_change,gyro_reset,other_command,ultrasonic_sensor_change
     global gyro_angle,gyro_sensor_mode_change
     global motor_stop_A,motor_stop_B,motor_stop_C
-    global spike_you
+    global spike_angle
 
     touch_sensor_value = -1
     prev_button_command = 0
@@ -747,9 +739,9 @@ async def notifySensorValues():
         gyro = hub.motion.gyroscope()
         #10msec周期なので、その分を加算する
         await send_data(8,int(gyro[2]))
-        spike_you = hub.motion.yaw_pitch_roll()[0]
-        # print("YOU="+str(spike_you))
-        await send_data(7,int(spike_you))
+        spike_angle = hub.motion.yaw_pitch_roll()[0]
+        # print("YOU="+str(spike_angle))
+        await send_data(7,int(spike_angle))
 
 
         #タッチセンサー
