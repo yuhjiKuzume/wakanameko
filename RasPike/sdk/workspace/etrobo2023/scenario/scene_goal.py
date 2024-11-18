@@ -4,6 +4,7 @@ import threading
 import ctypes
 import datetime
 import time
+import math
 from multiprocessing import Value, Array, Process
 
 from device.camera_control import read, show_camera_and_get_key
@@ -12,6 +13,8 @@ import device.camera_control as ctl_cam
 import device.serial_control as ctl_ser
 import device.keyboard_control as ctl_key
 import device.picture_control as ctl_pic
+from device.motor_control import  motor_control_thread
+
 
 
 # ゴールの方向を向く
@@ -81,6 +84,14 @@ def turn_and_go_to_line():
     send_wait("FW_B(50)")
     send_wait("CCW(35,60,60,True)")
 
+# ターン＆
+def turn_and_go_to_line_R():
+    send("BEEP_ON()")
+    send("ARM_SHAKE(300,2)")
+    send_wait("BW(15,60,60)")
+    send_wait("CW(90,60,60)")
+    send_wait("FW_B(50)")
+    send_wait("CW(35,60,60,True)")
 
 # 固定モーター制御(スレッド)
 def go_to_goal(camera_handle):
@@ -101,18 +112,54 @@ def wait_motor_sequence(thread, camera_handle):
         show_camera_and_get_key('smart', image)
         time.sleep(1)    
 
-def start(camera_handle):
+
+def goal_by_line_trace(camera_handle):
+
+    # 共有メモリを使ってモータコントローラスレッドにデータを送る
+    left_motor = Value('i', 0)
+    right_motor = Value('i', 0)
+    is_exit = Value('i', 0)
+    sleep_time = 0.01
+    
+    # モーターコントローラを裏で起動する
+    # thread = threading.Thread(target=motor_control_thread, args=(left_motor,right_motor,sleep_time,is_exit))
+    # thread.start()
+
+
+    base_speed = 60
+
+    start_time = time.time()
+    while True:
+        frame = read(camera_handle)
+        # フレームを上3/4にする
+        frame =  ctl_pic.get_crop_frame_3_4(frame)
+        blue_contour = ctl_pic.detect_blue_object(frame)
+        left_line1, left_line2 = ctl_pic.detect_lines_in_angle_range(frame, 0, 30)
+        right_line1, right_line2 = ctl_pic.detect_lines_in_angle_range(frame, 150, 180)
+
+        ctl_pic.draw_line(left_line1,frame,(0,255,255))
+        ctl_pic.draw_line(left_line2,frame,(0,255,255))
+        ctl_pic.draw_line(right_line1,frame,(0,0,255))
+        ctl_pic.draw_line(right_line2,frame,(0,0,255))
+
+
+        show_camera_and_get_key('smart', frame)    
+
+def start(camera_handle, is_left_course):
     # モーターコントローラを裏で起動する
     # ターンして黒い線まで行く
-    thread = threading.Thread(target=turn_and_go_to_line)
-    print("D")
-    wait_motor_sequence(thread,camera_handle)
-    print("E")
+    if is_left_course is True:
+        thread = threading.Thread(target=turn_and_go_to_line)
+        wait_motor_sequence(thread,camera_handle)
+    else:
+        thread = threading.Thread(target=turn_and_go_to_line_R)
+        wait_motor_sequence(thread,camera_handle)
 
-    # # ゴールの方向に向く
+
+    # ゴールの方向に向く
     face_blue_goal(camera_handle)
 
-    # # ゴールまで移動
+    # ゴールまで移動
     go_to_goal(camera_handle)
 
     send("BEEP_ON()")

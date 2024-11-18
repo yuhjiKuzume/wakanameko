@@ -30,11 +30,40 @@ from device.motor_control import  motor_control_thread
 #  ★--●--○-----○-----○
 #  | ●
 #  ●
+def test(camera_handle):
+    while True:
+        frame = read(camera_handle)
+        crop =get_frame_cropped_for_green_line_trace(frame)
+        lines = ctl_pic.detect_green_white_boundary(frame)
+        line_v = ctl_pic.get_right_most_line(lines,frame)
+        ctl_pic.draw_lines(frame,lines)
+        ctl_pic.draw_line(line_v,frame, (255,0,0))
+        ret , key = show_camera_and_get_key('crop', crop)
+        ret , key = show_camera_and_get_key('frame', frame)
 
-def start(camera_handle):
-    # send("BEEP_ON()")
-    frame = read(camera_handle)
-    show_camera_and_get_key('frame', frame)
+def get_frame_cropped_for_green_line_trace(frame):
+        # 画像の高さと幅を取得
+    height, width = frame.shape[:2]
+
+    # 中央部分を1/4にトリミング
+    start_x = width // 4
+    start_y = height // 3
+    end_x = width *3 // 4
+    end_y = height *2// 3
+
+    # フレームをトリミング
+    cropped_frame = frame[start_y:end_y, start_x:end_x]
+    return cropped_frame
+
+def start(camera_handle, is_left_course):
+    send("BEEP_ON()")
+    # frame = read(camera_handle)
+    # show_camera_and_get_key('frame', frame)
+
+    # while True:
+    #     #test(camera_handle)
+    #     green_line_trace(camera_handle, -10, False)
+
 
     # ★の所にあるのが、デブリブロックなら移動する
     # if isDebrisBlock(frame) is True:
@@ -42,50 +71,47 @@ def start(camera_handle):
     #     send_wait("FW(10,60,60)")        # 前進10cm
     #     send_wait("BW(10,60,60)")        # バック10cm
 
-    send_wait("CCW(40)")        # 右45度
-    send_wait("FW(20,60,60)")  # 前進20cm
-    send_wait("CW(40)")       # 左45度
+    if is_left_course is True:
+        send_wait("CCW(40)")        # 右45度
+        send_wait("FW(20,60,60)")  # 前進20cm
+        send_wait("CW(40)")       # 左45度
 
-    green_line_trace(camera_handle, 10)
-    send("BEEP_ON()")
-    
-    send_wait("CW(75)")        # 右90度
-    blue_object_trace(camera_handle, 10)
-    #correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-    #send_wait("FW(115,65,60)")  # 前進115cm
+        green_line_trace(camera_handle, 10)
+        send("BEEP_ON()")
+        
+        send_wait("CW(75)")        # 右90度
+        blue_object_trace(camera_handle, 10)
+    else:
+        send_wait("CW(40)")        # 左45度
+        send_wait("FW(20,60,60)")  # 前進20cm
+        send_wait("CCW(40)")       # 右45度
 
-    # thread = threading.Thread(target=turn_and_face_1)
-    # print("A")
-    # wait_motor_sequence(thread,camera_handle)
-    # print("B")
-    # correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-
-    # thread = threading.Thread(target=turn_and_face_2)
-    # print("C")
-    # wait_motor_sequence(thread,camera_handle)
-    # print("D")
-    # correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
-
-    # thread = threading.Thread(target=turn_and_face_3)
-    # print("E")
-    # wait_motor_sequence(thread,camera_handle)
-    # print("F")
-    # correct_angle(camera_handle) # ２つのラインの真ん中に向くように走行体を補正
+        green_line_trace(camera_handle, -10, False)
+        send("BEEP_ON()")
+        
+        send_wait("CCW(75)")        # 左90度
+        blue_object_trace(camera_handle, 10)
     
 
     
-def green_line_trace(camera_handle, correct = 0):
+def green_line_trace(camera_handle, correct = 0, is_left_course=True):
     # 共有メモリを使ってモータコントローラスレッドにデータを送る
     left_motor = Value('i', 0)
     right_motor = Value('i', 0)
     is_exit = Value('i', 0)
     sleep_time = 0.01
 
+    # 目標となる交点や直線が見つからない時はひとつ前の値を使う
+    intersection_y = 240
+    intersection_x = 320
+    old_intersection_x = intersection_x
+    old_intersection_y = intersection_y
+    
     # モーターコントローラを裏で起動する
     thread = threading.Thread(target=motor_control_thread, args=(left_motor,right_motor,sleep_time,is_exit))
     thread.start()
 
-    base_speed = 50
+    base_speed = 60
 
     start_time = time.time()
     while True:
@@ -95,43 +121,72 @@ def green_line_trace(camera_handle, correct = 0):
         frame =  ctl_pic.get_crop_frame_3_4(frame)
         
         # 目標値の初期値は、画面中央真ん中
-        intersection_y = 0
-        intersection_x = 320
+        intersection_y = old_intersection_y
+        intersection_x = old_intersection_x
 
         # 緑の線を検出
         lines = ctl_pic.detect_green_white_boundary(frame)
-        line_v = ctl_pic.get_right_most_line(lines,frame)
+
+        # レフトコースの場合
+        if is_left_course is True:
+            line_v = ctl_pic.get_right_most_line(lines,frame)
+        # ライトコースの場合
+        else:
+            line_v = ctl_pic.get_left_most_line(lines,frame)
+
+        _, left_line = detect_lines_in_angle_range(frame,0,30)
+
+
         line_h = ctl_pic.get_bottom_most_line(lines,frame)
 
         # 緑の横線を検出
         if line_h is not None:
-            ctl_pic.draw_line(line_h,frame)
-            # 交点を計算
+            # 縦の線を検出
             if line_v is not None:
+                #交点を検出
                 intersection_x, intersection_y = ctl_pic.find_intersection(line_v, line_h)
+                print(f"{intersection_x},{intersection_y}")
+            # 縦の線がない
             else:
-                intersection_x = 320
                 intersection_y = ctl_pic.find_y_at_x(line_h, intersection_x)
+                print(f"{intersection_x},{intersection_y}-")
+                
+        # 緑の横線がない
         else:
+            # 縦線はある
             if line_v is not None:
-                intersection_x = ctl_pic.find_x_at_y0(line_v)
+                intersection_x = ctl_pic.find_x_at_y(line_v, intersection_y)
+            # 縦線も横線もない
             else:
-                intersection_x = 320
-                intersection_y = 240
+                pass
             # 直線と画面上端の交点を求める
+
+        ctl_pic.draw_lines(frame,lines)
+
+        if line_h is not None:
+            ctl_pic.draw_line(line_h,frame,(0,255,0))
+        if line_v is not None:
+            ctl_pic.draw_line(line_v,frame,(0,255,0))
+
 
         # 黄色で交点を描画
         cv2.circle(frame, (int(intersection_x), int(intersection_y)), 5, (0, 255, 255), -1)  # 黄色で描画
+        
+        correct_intersection_x = intersection_x+correct
+        # 黄色で交点を描画
+        cv2.circle(frame, (int(correct_intersection_x), int(intersection_y)), 5, (255, 0, 0), -1)  # 黄色で描画
+        
+        target_line = 320, 0, 320, 480
+        ctl_pic.draw_line(target_line,frame)
 
         # モーター制御
-        intersection_x += correct
-        power = (320 - intersection_x)//20
+        power = (320 - correct_intersection_x)//20
         # print(power,intersection_x,intersection_y)
 
-        left_motor.value = base_speed + power
-        right_motor.value = base_speed - power
+        left_motor.value = base_speed + int(power)
+        right_motor.value = base_speed - int(power)
 
-        if intersection_y > 145:
+        if intersection_y > 130:  #50のとき145:
             is_exit.value = -1 # モータ制御を止める
             cv2.imwrite("green_line_trace_"+str(intersection_y)+".jpg",frame)
 
@@ -142,16 +197,19 @@ def green_line_trace(camera_handle, correct = 0):
 
         end_time = time.time()
         diff_time = end_time - start_time
-        # print(diff_time)
-        # if (diff_time) > 4:
-        #     send("MP(0,0)")
-        #     is_exit.value = -1
-        #     print("time up")
-        #     break
+        print(diff_time)
+        if (diff_time) > 4:
+            send("MP(0,0)")
+            is_exit.value = -1
+            print("time up")
+            break
 
         ret , key = show_camera_and_get_key('frame', frame)
         if ret is False:
             break
+
+        old_intersection_x = intersection_x
+        old_intersection_y = intersection_y
         time.sleep(0.1)
     print("done")
 
@@ -505,7 +563,7 @@ def blue_object_trace(camera_handle, correct = 0):
         right_motor.value = base_speed - power
 
         print(intersection_y)
-        if intersection_y > 180:
+        if intersection_y > 170: #60の時180:
             cv2.imwrite("blue_line_trace_"+str(intersection_y)+".jpg",frame)
             is_exit.value = -1 # モータ制御を止める
             send("MP(0,0)")
@@ -589,14 +647,14 @@ def isDebrisBlock(frame):
 
 def move_motor(angle, distance):
     print(angle+":"+str(distance))
-    base_power = 40
-    pwr = abs(distance//40) 
-    if(angle == "left"):
-        send_wait("CCW("+str(pwr)+")")
-    elif (angle == "right"):
-        send_wait("CW("+str(pwr)+")")
-    else:
-        pass #send_wait("MP(0,0)")
+    # base_power = 40
+    # pwr = abs(distance//40) 
+    # if(angle == "left"):
+    #     send_wait("CCW("+str(pwr)+")")
+    # elif (angle == "right"):
+    #     send_wait("CW("+str(pwr)+")")
+    # else:
+    #     pass #send_wait("MP(0,0)")
 
 def get_frame_cropped(frame):
         # 画像の高さと幅を取得

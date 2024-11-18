@@ -5,6 +5,7 @@ import datetime
 import time
 
 from device.camera_control import read, show_camera_and_get_key
+from device.serial_control import send, send_wait
 
 import device.camera_control as ctl_cam
 import device.serial_control as ctl_ser
@@ -73,7 +74,7 @@ def isRedCircleObject(rectangle, frame):
 
     return is_white
 
-def start(camera_handle):
+def start2(camera_handle):
     thread = threading.Thread(target=motor_ctrl)
     thread.daemon = True
     thread.start()
@@ -141,3 +142,79 @@ def start(camera_handle):
         ret, _ = show_camera_and_get_key('frame', frame)
         if ret is False:
             break
+        
+
+def get_frame_cropped(frame):
+        # 画像の高さと幅を取得
+    height, width = frame.shape[:2]
+
+    # 画面下半分にトリミング
+    start_x = 0
+    start_y = height // 2
+    end_x = start_x + width
+    end_y = height * 3 // 4
+
+    # フレームをトリミング
+    cropped_frame = frame[start_y:end_y, start_x:end_x]
+    return cropped_frame
+        
+def start_get_target_by_arm_direction(camera_handle):
+    while True:
+        frame = read(camera_handle)
+        cropped = get_frame_cropped(frame)
+        if show_camera_and_get_key('frame', frame) is False:
+            break
+        if show_camera_and_get_key('cropped', cropped) is False:
+            break
+
+def find_midpoint(x1, y1, x2, y2):
+    mid_x = (x1 + x2) / 2
+    mid_y = (y1 + y2) / 2
+    return mid_x, mid_y
+
+def start(camera_handle):
+    while True:
+        frame = read(camera_handle)
+        detect_yellow_objects(frame)
+        if show_camera_and_get_key('frame', frame) is False:
+            break
+        
+def detect_yellow_objects(frame):
+    # 画像を読み込む
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # 黄色の範囲を定義
+    lower_yellow = np.array([20, 100, 100])
+    upper_yellow = np.array([30, 255, 255])
+
+    # 黄色のマスクを作成
+    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    # 輪郭を検出
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # 輪郭を面積でソートして大きいものからnum_objects個を抽出
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:2]
+
+    # 黄色い物体の中点を計算
+    centers = []
+    for contour in contours:
+        M = cv2.moments(contour)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            centers.append((cX, cY))
+
+    # オブジェクト描画
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+    # 中点を画像に描画
+    for center in centers:
+        cv2.circle(frame, center, 5, (0, 255, 0), -1)
+
+    if len(centers) == 2:
+
+        cv2.circle(frame, find_midpoint(centers[0],centers[1]), 5, (0, 255, 0), -1)
+
