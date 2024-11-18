@@ -20,6 +20,7 @@ import scenario.scene_angle_test as angle_test
 
 FULL_MODE = False
 def main():
+    wait_start_carry() # 開始待ち
     # if FULL_MODE is True:
     #   wait_start() # 開始待ち
     # else:

@@ -54,20 +54,20 @@ void tracer_task(intptr_t unused)
     /*
     ２つめのカーブに到達
     */
-    // static bool_t reachSecondCurve = false;
-    // if ((abs(angle) > 170) && !reachSecondCurve)
-    // {
-    //     timeAtLapPoint = time;
-    //     reachSecondCurve = true;
-    //     dynamic_base_speed = 45;
-    // }
+    static bool_t reachSecondCurve = false;
+    if ((abs(angle) > 170) && !reachSecondCurve)
+    {
+        timeAtLapPoint = time;
+        reachSecondCurve = true;
+        dynamic_base_speed = 45;
+    }
 
     /*
     LAP付近にきたら、右側トレースに切り替える
     */
     static bool_t passLap = false;
-    // if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
-    if (!passLap) // ダブルループ実験用
+    if (reachSecondCurve && (time - timeAtLapPoint) > 100 && !passLap)
+    // if (!passLap) // ダブルループ実験用
     {
         printf("------------------------------------Lap手前に到達------------------------------------\n");
 
@@ -529,8 +529,7 @@ void tracer_task(intptr_t unused)
                 ev3_motor_set_power(right_motor, 0);
 
                 static int waitTimer = 0;
-                startSmartCarry = waitMSecond(&is_motor_stop, &waitTimer, 3);
-
+                startSmartCarry = true;
                 // リセット
                 blue_line_count = 0;
                 initialize_pid_value();
@@ -543,6 +542,7 @@ void tracer_task(intptr_t unused)
     // スマートキャリー攻略のpythonを起動する為、フラグとなるtxtファイルを作成
     if (startSmartCarry)
     {
+        printf("スマートキャリー攻略のフラグを作成");
         char fileName[] = "etrobo2023/flagFolder/startSmartCarry.txt";
         FILE *file = fopen(fileName, "w");
         if (!(file == NULL))
