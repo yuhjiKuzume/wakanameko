@@ -57,6 +57,8 @@ def get_frame_cropped_for_green_line_trace(frame):
 
 def start(camera_handle, is_left_course):
     send("BEEP_ON()")
+    # green_line_trace(camera_handle, 10)
+
     # frame = read(camera_handle)
     # show_camera_and_get_key('frame', frame)
 
@@ -102,7 +104,7 @@ def green_line_trace(camera_handle, correct = 0, is_left_course=True):
     sleep_time = 0.01
 
     # 目標となる交点や直線が見つからない時はひとつ前の値を使う
-    intersection_y = 240
+    intersection_y = 0
     intersection_x = 320
     old_intersection_x = intersection_x
     old_intersection_y = intersection_y
@@ -211,6 +213,8 @@ def green_line_trace(camera_handle, correct = 0, is_left_course=True):
         old_intersection_x = intersection_x
         old_intersection_y = intersection_y
         time.sleep(0.1)
+    is_exit.value = -1 # モータ制御を止める
+    send("MP(0,0)")
     print("done")
 
 def is_point_right_of_line(point, line):
@@ -583,6 +587,9 @@ def blue_object_trace(camera_handle, correct = 0):
         if ret is False:
             break
         time.sleep(0.1)
+
+    is_exit.value = -1 # モータ制御を止める
+    send("MP(0,0)")
     print("done")
 
 

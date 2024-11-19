@@ -4,7 +4,7 @@ import threading
 import datetime
 import platform
 
-CANNOT_SHOW_FRAME = False
+CANNOT_SHOW_FRAME = True
 
 # どのデバッグ環境でもモジュールテストできるようにする
 if platform.system() != 'Windows':
@@ -58,6 +58,12 @@ if USE_PICAMERA2 is True:
     def read_camera(camera_handle):
         frame = camera_handle.capture_array()
         frame = cv2.resize(frame,(640,480))
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        return frame
+
+    def read_camera_800x600(camera_handle):
+        frame = camera_handle.capture_array()
+        frame = cv2.resize(frame,(800,600))
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return frame
     

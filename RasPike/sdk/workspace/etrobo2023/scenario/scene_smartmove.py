@@ -247,7 +247,7 @@ def start(camera_handle, is_left_course):
     #     face_blue_marker(camera_handle)
 
     send("BEEP_ON()")
-    cv2.namedWindow('smart')
+    #cv2.namedWindow('smart')
     bottle_y = face_red_bottle(camera_handle) # ボトルの方向を向く
     print(f"bottle={bottle_y}")
     if (bottle_y > 150):

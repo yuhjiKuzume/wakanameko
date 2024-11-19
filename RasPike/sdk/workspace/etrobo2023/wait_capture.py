@@ -2,13 +2,17 @@ import time
 import os
 import capture_minifig
 import test
+import device.camera_control as camera
 
 # 監視するフォルダのパス
 folder_to_watch = "./flagFolder"
 start_time = 0
+handle = None
+frame = None
 
 # フォルダを監視する関数
 def watch_folder(folder, capture_count):
+  global frame, handle
   # ミニフィグ撮影の実行を命じるフラグ
   # 指定したファイルが作成されたらミニフィグ撮影を実行
   file_to_watch = f"capture_flag_{count}.txt"
@@ -23,9 +27,12 @@ def watch_folder(folder, capture_count):
     # 目的のファイルが存在するか確認
     if file_to_watch in files_in_folder:
       print(f"{file_to_watch} found! Executing curl command...")
+      if capture_count == 0 :
+        handle = camera.init_camera()
+
 
       # ミニフィグ撮影
-      capture_minifig.capture(capture_count)
+      capture_minifig.capture(capture_count, handle)
 
       # 撮影が終了したら処理を終了する
       break
@@ -35,6 +42,7 @@ def watch_folder(folder, capture_count):
 
 if __name__ == "__main__":
   count = 0
-  while (count < 6):
+  while (count < 4):
     watch_folder(folder_to_watch, count)
     count += 1
+  camera.close_camera(handle)

@@ -20,7 +20,7 @@ static int timeAtLapPoint = 0;
 static int16_t angle;
 
 /* ライントレースタスク(10msec周期で関数コールされる) */
-void tracer_task(intptr_t unused) {}
+void tracer_task(intptr_t unused){}
 // {
 //     static int selected_pid_parameter = 0; // 0なら直線用pid　1なら楕円用pid(ベースカラーは270にする)
 //     static int blue_line_count = 0;        // 青ライン通過回数
@@ -55,7 +55,7 @@ void tracer_task(intptr_t unused) {}
 //     ２つめのカーブに到達
 //     */
 //     static bool_t reachSecondCurve = false;
-//     if ((abs(angle) > 170) && !reachSecondCurve)
+//     if (((abs(angle) > 170)|| time > 1500) && !reachSecondCurve)
 //     {
 //         timeAtLapPoint = time;
 //         reachSecondCurve = true;
@@ -103,8 +103,8 @@ void tracer_task(intptr_t unused) {}
 //     /*
 //     プラレール・風景攻略
 //     */
-//     static int16_t takeVideoAngle = -10;    // 110 // ここを変更 // 前半部分を撮影する場合、-160°まで
-//     static bool_t takeVideoAtFirst = false; // 前半部分か後半部分を撮影するかを決定　// ここを変更
+//     static int16_t takeVideoAngle = 125;    // 110 // ここを変更 // 前半部分を撮影する場合、-160°まで
+//     static bool_t takeVideoAtFirst = true; // 前半部分か後半部分を撮影するかを決定　// ここを変更
 
 //     static bool_t passPerfectCercle = false;
 //     static bool_t doneTakeVideo = false;
@@ -345,7 +345,7 @@ void tracer_task(intptr_t unused) {}
 //         if (arrive && !doneSecondTask)
 //         {
 //             printf("【楕円でのミニフィグ撮影】２回目");
-//             doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 125, 12); // ここを変更
+//             doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 140, 12); // ここを変更
 //             if (doneSecondTask)
 //             {
 //                 doThirdTask = true;
@@ -371,7 +371,7 @@ void tracer_task(intptr_t unused) {}
 //         if (arrive && !doneThirdTask)
 //         {
 //             printf("【楕円でのミニフィグ撮影】３回目");
-//             doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 70, 12); // ここを変更
+//             doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 75, 12); // ここを変更
 //             if (doneThirdTask)
 //             {
 //                 doFourthTask = true;
@@ -398,7 +398,7 @@ void tracer_task(intptr_t unused) {}
 //         if (arrive && !doneFourthTask)
 //         {
 //             printf("【楕円でのミニフィグ撮影】４回目");
-//             doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 120, 12); // ここを変更
+//             doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 135, 12); // ここを変更
 //             if (doneFourthTask)
 //             {
 //                 blue_line_count = 0;
@@ -1040,7 +1040,7 @@ void tracer_task(intptr_t unused) {}
 //     static bool_t executedPython = false;
 //     if (!snaped && !doTowardsCenterOfEllipse)
 //     {
-//         snaped = waitMSecond(is_motor_stop, &timeCount, 4);
+//         snaped = waitMSecond(is_motor_stop, &timeCount, 2);
 
 //         // 写真撮影のPythonの実行
 //         static int minifigSnapNumber = 0; // n回目のミニフィグ撮影 かを管理

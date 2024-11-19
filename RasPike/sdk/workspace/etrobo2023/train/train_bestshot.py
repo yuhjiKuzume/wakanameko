@@ -13,7 +13,7 @@ if __name__ == "__main__":
     video_path = "/home/waka/wakanameko/RasPike/sdk/workspace/etrobo2023/video.mp4"
     output_root_folder = "../train_movie/"
     frame_interval = 20         # 動画から画像抽出時のフレーム間隔
-    calculate_interval = 6      # 【重要】画像間演算時のフレーム間隔。抽出フレームでプラレールが重ならない間隔を指定
+    calculate_interval = 5      # 【重要】画像間演算時のフレーム間隔。抽出フレームでプラレールが重ならない間隔を指定
     debug_mode = False
     bestshot_folder_Path = "/home/waka/wakanameko/RasPike/sdk/workspace/etrobo2023/train_ditect"
     bestshot_filename = "bestshot_train.jpg"

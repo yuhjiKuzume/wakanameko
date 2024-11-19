@@ -15,7 +15,7 @@ import scenario.scene_goal as goal
 import scenario.scene_moveblock as moveblock
 import scenario.scene_smartmove as smartmove
 
-IS_LEFT_COURSE = False
+IS_LEFT_COURSE = True
 
 def main():
     wait_start_carry() # 開始待ち

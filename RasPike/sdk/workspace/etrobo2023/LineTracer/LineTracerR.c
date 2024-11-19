@@ -55,7 +55,7 @@ void tracer_task_R(intptr_t unused)
     ２つめのカーブに到達
     */
     static bool_t reachSecondCurve = false;
-    if ((abs(angle) > 170) && !reachSecondCurve)
+    if (((abs(angle) > 170)|| time > 1500) && !reachSecondCurve)
     {
         timeAtLapPoint = time;
         reachSecondCurve = true;
@@ -103,7 +103,7 @@ void tracer_task_R(intptr_t unused)
     /*
     プラレール・風景攻略
     */
-    static int16_t takeVideoAngle = 10;     // 110 // ここを変更 // 前半部分を撮影する場合、160°まで
+    static int16_t takeVideoAngle = 5;     // 110 // ここを変更 // 前半部分を撮影する場合、160°まで
     static bool_t takeVideoAtFirst = false; // 前半部分か後半部分を撮影するかを決定　// ここを変更
 
     static bool_t passPerfectCercle = false;
@@ -345,7 +345,7 @@ void tracer_task_R(intptr_t unused)
         if (arrive && !doneSecondTask)
         {
             printf("【楕円でのミニフィグ撮影】２回目");
-            doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 125, 12); // ここを変更
+            doneSecondTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 140, 12); // ここを変更
             if (doneSecondTask)
             {
                 doThirdTask = true;
@@ -371,7 +371,7 @@ void tracer_task_R(intptr_t unused)
         if (arrive && !doneThirdTask)
         {
             printf("【楕円でのミニフィグ撮影】３回目");
-            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 70, 12); // ここを変更
+            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 75, 12); // ここを変更
             if (doneThirdTask)
             {
                 doFourthTask = true;
@@ -398,7 +398,7 @@ void tracer_task_R(intptr_t unused)
         if (arrive && !doneFourthTask)
         {
             printf("【楕円でのミニフィグ撮影】４回目");
-            doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 120, 12); // ここを変更
+            doneFourthTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 135, 12); // ここを変更 // 120
             if (doneFourthTask)
             {
                 blue_line_count = 0;
@@ -469,7 +469,7 @@ void tracer_task_R(intptr_t unused)
             {
                 if (passEllipse && (time - doneMassuguGOTime) > 50)
                 {
-                    if (angle > takeVideoAngle)
+                    if (angle < takeVideoAngle)
                     { // 機体ストップ
                         is_motor_stop = true;
                         ev3_motor_set_power(left_motor, 0);
@@ -1040,7 +1040,7 @@ bool_t takePhotoOfMinifig(bool_t *pointer_motor_impals, bool_t *is_motor_stop, i
     static bool_t executedPython = false;
     if (!snaped && !doTowardsCenterOfEllipse)
     {
-        snaped = waitMSecond(is_motor_stop, &timeCount, 4);
+        snaped = waitMSecond(is_motor_stop, &timeCount, 2);
 
         // 写真撮影のPythonの実行
         static int minifigSnapNumber = 0; // n回目のミニフィグ撮影 かを管理
