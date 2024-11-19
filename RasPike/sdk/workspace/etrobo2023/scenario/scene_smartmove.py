@@ -14,7 +14,7 @@ from device.motor_control import  motor_control_thread
 
 def move_motor(angle, distance):
     print(angle+":"+str(distance))
-    base_power = 50
+    base_power = 45
     pwr = abs(distance//30) 
     if(angle == "left"):
         send_wait("CCW("+str(pwr)+")")
@@ -87,18 +87,60 @@ def get_frame_cropped(frame):
     cropped_frame = frame[start_y:end_y, start_x:end_x]
     return cropped_frame
 
+def mask_upper_of_line(image,x1, y1, x2, y2):
+    """
+    緑と白の境界線 (y = ax + b) より上側を黒くする。
+    a: 境界線の傾き
+    b: 境界線の切片
+    """
+    slope = (y2 - y1) / (x2 - x1)
+    intercept = y1 - slope * x1
+
+    # 画像の高さと幅を取得
+    height, width = image.shape[:2]
+    
+    # 空のマスクを作成
+    mask = np.zeros((height, width), dtype=np.uint8)
+    
+    # 境界線の左側を塗りつぶす
+#    for x in range(width - 1, -1, -1):
+    for x in range(width - 1, -1, -1):
+        y = int(slope * x + intercept)  # y座標を計算
+        if 0 <= y < height:  # y座標が画像の範囲内にある場合
+            mask[:y, x] = 255 # 境界線より上を白で塗りつぶす
+    
+    # マスクを反転させる（左側を黒くする）
+    mask = 255 - mask
+    
+    # 元画像にマスクを適用
+    result = cv2.bitwise_and(image, image, mask=mask)
+    
+    return result
+
 # 青マーカーの方向を向く
-def face_blue_marker(camera_handle):
+def face_blue_marker(camera_handle, is_left_course):
     print("START-face_blue_marker")
     while True:
         frame = read(camera_handle)
         frame = get_frame_cropped(frame)
+        
+        # 緑色の境界線を検出する。
+        lines = ctl_pic.detect_green_white_boundary(frame)
+        if lines is None:
+            continue
+        line_h = ctl_pic.get_bottom_most_line(lines,frame)
+        ctl_pic.draw_line(line_h,frame)
+        
+        if line_h is not None:
+            x1, y1, x2, y2 = line_h
+            frame = mask_upper_of_line(frame,x1, y1, x2, y2)
+        
         contour_blue = ctl_pic.detect_blue_object(frame)
            
         if (contour_blue is not None):
             x, y, w, h = contour_blue
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 0), 2)
+            # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 0), 2)
             frame_center = frame.shape[1] // 2
             object_center = x + w // 2
             if object_center < frame_center - 20:
@@ -108,7 +150,10 @@ def face_blue_marker(camera_handle):
             else:
                 break
         else:
-            move_motor("right", 10)
+            if is_left_course is True:
+                move_motor("right", 10)
+            else :
+                move_motor("left", 10)
 
         show_camera_and_get_key('smart', frame)
 
@@ -197,7 +242,7 @@ def approach_blue_mark(camera_handle):
     send_wait("MP(0,0)")
 
     
-def start(camera_handle):
+def start(camera_handle, is_left_course):
     # while True:
     #     face_blue_marker(camera_handle)
 
@@ -210,9 +255,14 @@ def start(camera_handle):
         approach_red_bottle(camera_handle, 85) # ボトルまで近づく
     else:
         approach_red_bottle(camera_handle, 75) # ボトルまで近づく
-        
-    send_wait("CW(60,50,80)")     
-    face_blue_marker(camera_handle)
-    approach_circle(camera_handle,155)
+
+    if is_left_course is True:
+        send_wait("CW(60,50,80)")     
+        face_blue_marker(camera_handle, is_left_course)
+        approach_circle(camera_handle,155)
+    else:
+        send_wait("CCW(60,50,80)")     
+        face_blue_marker(camera_handle, is_left_course)
+        approach_circle(camera_handle,155)
     #go_to_circle(camera_handle)
     return True

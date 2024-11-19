@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import threading
 import datetime
+import math
 
 def detect_blue_object(frame):
     # HSV色空間に変換
@@ -220,6 +221,36 @@ def get_bottom_most_line(lines, frame):
                 
     return bottom_line
 
+def get_left_most_line(lines, frame ):
+    # 一番左側の縦のラインを保存する変数を初期化
+    leftmost_x = 65535
+    leftmost_line = None
+
+    if lines is not None:
+        for rho, theta in lines[:, 0]:
+            # 線の角度が垂直に近いかどうかを確認
+            if -0.3 < theta < 0.3 or np.pi - 0.3 < theta < np.pi + 0.3:  # 垂直に近い線の許容範囲を広げる
+            # if -0.1 < theta < 0.1 or np.pi - 0.1 < theta < np.pi + 0.1:  # 垂直に近い線の許容範囲を設定
+                
+            # if np.pi / 2 - 0.3 < theta < np.pi / 2 + 0.3:  # 水平に近い線の許容範囲を広げるために閾値を調整
+            # if np.pi / 2 - 0.1 < theta < np.pi / 2 + 0.1:  # 水平に近い線の許容範囲を設定
+                # rhoとthetaを使って線の端点を計算
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                x1 = int(x0 + 1000 * (-b))
+                y1 = int(y0 + 1000 * (a))
+                x2 = int(x0 - 1000 * (-b))
+                y2 = int(y0 - 1000 * (a))
+                
+                # この線が右側にある場合、右端の線を更新
+                if x0 < leftmost_x:
+                    leftmost_x = x0
+                    leftmost_line = (x1, y1, x2, y2)
+                
+    return leftmost_line
+
 def get_right_most_line(lines, frame ):
     # 一番右側の縦のラインを保存する変数を初期化
     rightmost_x = -1
@@ -228,7 +259,7 @@ def get_right_most_line(lines, frame ):
     if lines is not None:
         for rho, theta in lines[:, 0]:
             # 線の角度が垂直に近いかどうかを確認
-            if -0.3 < theta < 0.3 or np.pi - 0.3 < theta < np.pi + 0.3:  # 垂直に近い線の許容範囲を広げる
+            if -0.4 < theta < 0.4 or np.pi - 0.4 < theta < np.pi + 0.4:  # 垂直に近い線の許容範囲を広げる
             # if -0.1 < theta < 0.1 or np.pi - 0.1 < theta < np.pi + 0.1:  # 垂直に近い線の許容範囲を設定
                 
             # if np.pi / 2 - 0.3 < theta < np.pi / 2 + 0.3:  # 水平に近い線の許容範囲を広げるために閾値を調整
@@ -490,7 +521,7 @@ def find_y_at_x(line, point_x=320):
     
     return y_at_x
         
-def find_x_at_y0(line):
+def find_x_at_y(line, point_y=0):
     x1, y1, x2, y2 =line
     # 直線が垂直（x1 == x2）の場合をチェック
     if x1 == x2:
@@ -503,9 +534,9 @@ def find_x_at_y0(line):
     b = y1 - m * x1
     
     # y = 0 のときの x 座標を計算
-    x_at_y0 = -b / m
+    x_at_y = (point_y -b) / m
     
-    return int(x_at_y0)
+    return int(x_at_y)
 
 def erase_green_left(frame):
     height, width = frame.shape[:2]
@@ -536,4 +567,102 @@ def erase_green_left(frame):
             if mask[y, x][0] == 255:
                 frame[y, :x] = [255, 255, 255]
                 break
-    return frame    
+    return frame   
+def detect_lines_in_angle_range(frame, min_angle=30, max_angle=60):
+    # グレースケールに変換
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # エッジ検出
+    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+    # Hough変換を使用して線を検出
+    lines = cv2.HoughLines(edges, 1, np.pi / 180, 100)
+    
+    line_angle_min = max_angle
+    line_angle_max = min_angle
+    
+    line_min = None
+    line_max = None
+    if lines is not None:
+        for rho, theta in lines[:, 0]:
+            # 角度を度に変換
+            angle = math.degrees(theta)
+            # 角度が指定範囲内にあるか確認
+            if min_angle <= angle <= max_angle:
+                # 線を描画
+                a = np.cos(theta)
+                b = np.sin(theta)
+                x0 = a * rho
+                y0 = b * rho
+                x1 = int(x0 + 1000 * (-b))
+                y1 = int(y0 + 1000 * (a))
+                x2 = int(x0 - 1000 * (-b))
+                y2 = int(y0 - 1000 * (a))
+
+                # 最小角度更新
+                if line_angle_min > angle:
+                    angle = line_angle_min
+                    line_min = x1, y1, x2, y2
+                    
+                # 最大角度更新
+                if line_angle_max < angle:
+                    angle = line_angle_max
+                    line_max = x1, y1, x2, y2
+                
+    return line_max, line_min
+
+def white_above_white_line(image, line):
+    """
+    白の直線 (y = ax + b) より上側を白く塗りつぶす。
+    a: 直線の傾き
+    b: 直線の切片
+    """
+    x1, y1, x2, y2 = line
+
+    slope = (y2 - y1) / (x2 - x1)
+    intercept = y1 - slope * x1
+
+    # 画像の高さと幅を取得
+    height, width = image.shape[:2]
+    
+    # 空のマスクを作成
+    mask = np.ones((height, width), dtype=np.uint8) * 255  # 初期値を白に設定
+    
+    # 白の直線の上側を塗りつぶす
+    for x in range(width):
+        y = int(slope * x + intercept)  # y座標を計算
+        if 0 <= y < height:  # y座標が画像の範囲内にある場合
+            mask[:y, x] = 255  # 白の直線より上を白で塗りつぶす
+    
+    # 元画像にマスクを適用
+    result = cv2.bitwise_or(image, image, mask=mask)
+    
+    return result
+import numpy as np
+import cv2
+
+def white_above_green_line(image, line):
+    """
+    緑の直線 (y = ax + b) より上側を白く塗りつぶす。
+    a: 直線の傾き
+    b: 直線の切片
+    """
+    
+    x1, y1, x2, y2 = line
+    slope = (y2 - y1) / (x2 - x1)
+    intercept = y1 - slope * x1
+
+    # 画像の高さと幅を取得
+    height, width = image.shape[:2]
+    
+    # 空のマスクを作成
+    mask = np.zeros((height, width), dtype=np.uint8)
+    
+    # 緑の直線の上側を塗りつぶす
+    for x in range(width):
+        y = int(slope * x + intercept)  # y座標を計算
+        if 0 <= y < height:  # y座標が画像の範囲内にある場合
+            mask[:y, x] = 255  # 緑の直線より上を白で塗りつぶす
+    
+    # 元画像にマスクを適用
+    result = cv2.bitwise_or(image, image, mask=mask)
+    
+    return result
