@@ -72,27 +72,55 @@ def start(camera_handle, is_left_course):
     #     print("isDebrisBlock is True")
     #     send_wait("FW(10,60,60)")        # 前進10cm
     #     send_wait("BW(10,60,60)")        # バック10cm
+    DEBUG = True
 
-    if is_left_course is True:
-        send_wait("CCW(40)")        # 右45度
-        send_wait("FW(20,60,60)")  # 前進20cm
-        send_wait("CW(40)")       # 左45度
+    # 2024/11/20　CSで変更した動作   
+    if DEBUG is True:
+        if is_left_course is True:
+            send_wait("CW(40)")        # 右45度
+            send_wait("FW(20,60,60)")  # 前進20cm
+            send_wait("CCW(40)")       # 左45度
 
-        green_line_trace(camera_handle, 10)
-        send("BEEP_ON()")
-        
-        send_wait("CW(75)")        # 右90度
-        blue_object_trace(camera_handle, 10)
+            send_wait("FW(90,60,60)")  # 前進90cm
+            send("BEEP_ON()")
+            
+            send_wait("CW(75)")        # 右90度
+            blue_object_trace(camera_handle, 10)
+        else:
+            send_wait("CCW(40)")        # 左45度
+            send_wait("FW(20,60,60)")  # 前進20cm
+            send_wait("CW(40)")       # 右45度
+
+            send_wait("FW(90,60,60)")  # 前進90cm
+            send("BEEP_ON()")
+            
+            send_wait("CCW(75)")        # 左90度
+            blue_object_trace(camera_handle, 10)
+
+    # 2024/11/19　社内で確認していた動作   
     else:
-        send_wait("CW(40)")        # 左45度
-        send_wait("FW(20,60,60)")  # 前進20cm
-        send_wait("CCW(40)")       # 右45度
+        if is_left_course is True:
+            send_wait("CCW(40)")        # 右45度
+            send_wait("FW(20,60,60)")  # 前進20cm
+            send_wait("CW(40)")       # 左45度
 
-        green_line_trace(camera_handle, -10, False)
-        send("BEEP_ON()")
-        
-        send_wait("CCW(75)")        # 左90度
-        blue_object_trace(camera_handle, 10)
+            green_line_trace(camera_handle, 10)
+            send("BEEP_ON()")
+            
+            send_wait("CW(75)")        # 右90度
+            blue_object_trace(camera_handle, 10)
+    # 2024/11/19　社内で確認していた動作   
+        else:
+            send_wait("CW(40)")        # 左45度
+            send_wait("FW(20,60,60)")  # 前進20cm
+            send_wait("CCW(40)")       # 右45度
+
+            green_line_trace(camera_handle, -10, False)
+            send("BEEP_ON()")
+            
+            send_wait("CCW(75)")        # 左90度
+            blue_object_trace(camera_handle, 10)
+    # 2024/11/19　社内で確認していた動作   
     
 
     

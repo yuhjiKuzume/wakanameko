@@ -78,7 +78,7 @@ def read_video(camera_handle):
 # ターン＆
 def turn_and_go_to_line():
     send("BEEP_ON()")
-    send("ARM_SHAKE(300,2)")
+    # send("ARM_SHAKE(300,2)")
     send_wait("BW(15,60,60)")
     send_wait("CCW(90,60,60)")
     send_wait("FW_B(50)")
@@ -87,7 +87,7 @@ def turn_and_go_to_line():
 # ターン＆
 def turn_and_go_to_line_R():
     send("BEEP_ON()")
-    send("ARM_SHAKE(300,2)")
+    # send("ARM_SHAKE(300,2)")
     send_wait("BW(15,60,60)")
     send_wait("CW(90,60,60)")
     send_wait("FW_B(50)")

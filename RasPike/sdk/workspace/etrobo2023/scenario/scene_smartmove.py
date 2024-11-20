@@ -248,13 +248,14 @@ def start(camera_handle, is_left_course):
 
     send("BEEP_ON()")
     #cv2.namedWindow('smart')
-    bottle_y = face_red_bottle(camera_handle) # ボトルの方向を向く
-    print(f"bottle={bottle_y}")
-    if (bottle_y > 150):
-        send_wait("BW(10,50,50)")  
-        approach_red_bottle(camera_handle, 85) # ボトルまで近づく
-    else:
-        approach_red_bottle(camera_handle, 75) # ボトルまで近づく
+    # 2024/11/20 CS大会でボトルが細くつかめそうなのでいったん下がって突進するプログラムを削除
+    # bottle_y = face_red_bottle(camera_handle) # ボトルの方向を向く
+    # print(f"bottle={bottle_y}")
+    # if (bottle_y > 150):
+    #     send_wait("BW(10,50,50)")  
+    #     approach_red_bottle(camera_handle, 85) # ボトルまで近づく
+    # else:
+    approach_red_bottle(camera_handle, 75) # ボトルまで近づく
 
     if is_left_course is True:
         send_wait("CW(60,50,80)")     
