@@ -160,8 +160,8 @@ def face_blue_marker(camera_handle, is_left_course):
         time.sleep(0.5)
 
 
-def approach_red_bottle(camera_handle, distance= 80):
-    send_wait("FW("+str(distance)+",100,100)")
+def approach_red_bottle(camera_handle, distance= 70):
+    send_wait("FW("+str(distance)+",70,70)")
     # frame = read(camera_handle)
     # x, y, w, h = ctl_pic.detect_red_object(frame)
     # distance = ctl_pic.get_distance(x,y)
@@ -249,20 +249,28 @@ def start(camera_handle, is_left_course):
     send("BEEP_ON()")
     #cv2.namedWindow('smart')
     # 2024/11/20 CS大会でボトルが細くつかめそうなのでいったん下がって突進するプログラムを削除
-    # bottle_y = face_red_bottle(camera_handle) # ボトルの方向を向く
+    bottle_y = face_red_bottle(camera_handle) # ボトルの方向を向く
     # print(f"bottle={bottle_y}")
     # if (bottle_y > 150):
     #     send_wait("BW(10,50,50)")  
     #     approach_red_bottle(camera_handle, 85) # ボトルまで近づく
     # else:
-    approach_red_bottle(camera_handle, 75) # ボトルまで近づく
+    approach_red_bottle(camera_handle, 50) # ボトルまで近づく
 
     if is_left_course is True:
-        send_wait("CW(60,50,80)")     
+        send_wait("CW(10,0,70)")     
+        send_wait("FW(5,70,70)")     
+        send_wait("CW(10,0,70)")     
+        send_wait("FW(5,70,70)")     
+        send_wait("CW(10,0,70)")     
         face_blue_marker(camera_handle, is_left_course)
         approach_circle(camera_handle,155)
     else:
-        send_wait("CCW(60,50,80)")     
+        send_wait("CCW(10,70,0)")     
+        send_wait("FW(5,70,70)")     
+        send_wait("CCW(10,70,0)")     
+        send_wait("FW(5,70,70)")     
+        send_wait("CCW(10,70,0)")     
         face_blue_marker(camera_handle, is_left_course)
         approach_circle(camera_handle,155)
     #go_to_circle(camera_handle)

@@ -82,7 +82,7 @@ def turn_and_go_to_line():
     send_wait("BW(15,60,60)")
     send_wait("CCW(90,60,60)")
     send_wait("FW_B(50)")
-    send_wait("CCW(35,60,60,True)")
+    send_wait("CCW(45,60,60,True)")
 
 # ターン＆
 def turn_and_go_to_line_R():
@@ -91,7 +91,7 @@ def turn_and_go_to_line_R():
     send_wait("BW(15,60,60)")
     send_wait("CW(90,60,60)")
     send_wait("FW_B(50)")
-    send_wait("CW(35,60,60,True)")
+    send_wait("CW(45,60,60,True)")
 
 # 固定モーター制御(スレッド)
 def go_to_goal(camera_handle):

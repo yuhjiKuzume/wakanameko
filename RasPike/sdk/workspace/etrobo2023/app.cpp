@@ -54,8 +54,8 @@ void main_task(intptr_t unused)
     {
         ev3_gyro_sensor_reset(gyro_sensor);
 
-        // sta_cyc(LINE_TRACER_TASK_CYC); // 左コース
-        sta_cyc(LINE_TRACER_TASK_CYC_R); // 右コース
+        sta_cyc(LINE_TRACER_TASK_CYC); // 左コース
+        // sta_cyc(LINE_TRACER_TASK_CYC_R); // 右コース
         // slp_tsk();
     }
 

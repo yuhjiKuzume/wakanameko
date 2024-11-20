@@ -103,8 +103,8 @@ void tracer_task_R(intptr_t unused)
     /*
     プラレール・風景攻略
     */
-    static int16_t takeVideoAngle = 5;     // 110 // ここを変更 // 前半部分を撮影する場合、160°まで
-    static bool_t takeVideoAtFirst = false; // 前半部分か後半部分を撮影するかを決定　// ここを変更
+    static int16_t takeVideoAngle = -10;     // 110 // ここを変更 // 前半部分を撮影する場合、160°まで
+    static bool_t takeVideoAtFirst = true; // 前半部分か後半部分を撮影するかを決定　// ここを変更
 
     static bool_t passPerfectCercle = false;
     static bool_t doneTakeVideo = false;
@@ -371,10 +371,11 @@ void tracer_task_R(intptr_t unused)
         if (arrive && !doneThirdTask)
         {
             printf("【楕円でのミニフィグ撮影】３回目");
-            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 75, 12); // ここを変更
+            doneThirdTask = takePhotoOfMinifig(&motor_impals, &is_motor_stop, 75, 13); // ここを変更
             if (doneThirdTask)
             {
                 doFourthTask = true;
+                initialize_pid_value();
             }
         }
     }
