@@ -1,0 +1,1 @@
+curl -X POST -H "Content-Type:image/jpeg" --data-binary @bestshot_minifig.jpeg http://192.168.100.1/snap?id=111
